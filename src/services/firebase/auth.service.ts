@@ -27,6 +27,9 @@ export interface UserProfile {
   createdAt: Date;
   updatedAt: Date;
   emailVerified: boolean;
+  phone?: string;
+  address?: string;
+  profileImage?: string;
 }
 
 export interface SignUpPayload {
