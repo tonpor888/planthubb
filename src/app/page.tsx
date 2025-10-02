@@ -46,41 +46,6 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      window.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      window.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMenuOpen]);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [profile]);
-
-  const goTo = (path: string) => {
-    setIsMenuOpen(false);
-    router.push(path);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOutUser();
-      setIsMenuOpen(false);
-      router.push("/");
-    } catch (error) {
-      console.error("Failed to sign out", error);
-    }
-  };
-
   const filteredProducts = useMemo(() => {
     const normalized = debouncedQuery.trim().toLowerCase();
     const items = Object.entries(products)
