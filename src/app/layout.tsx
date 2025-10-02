@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     "สวน",
     "ปลูกต้นไม้",
   ],
+  icons: {
+    icon: "/image/logo.png",
+  },
   openGraph: {
     title: "PlantHub | ศูนย์รวมต้นไม้และดอกไม้",
     description:
