@@ -131,7 +131,7 @@ export function Header() {
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-emerald-100 bg-white p-2 text-sm shadow-2xl z-50">
+                  <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-emerald-100 bg-white p-2 text-sm shadow-2xl z-[9999]">
                     <button
                       onClick={() => goTo("/profile")}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
