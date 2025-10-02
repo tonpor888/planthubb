@@ -96,34 +96,34 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (product && quantity > 0) {
-      for (let i = 0; i < quantity; i++) {
-        addToCart({
+      addToCart(
+        {
           id: product.id,
           name: product.name,
           price: product.price,
           stock: product.stock,
           image: product.imageUrl,
           sellerId: product.sellerId ?? "",
-        });
-      }
-      // Don't redirect, just show success feedback
-      setQuantity(1); // Reset quantity after adding
+        },
+        quantity,
+      );
+      setQuantity(1);
     }
   };
 
   const handleBuyNow = () => {
     if (product && quantity > 0) {
-      for (let i = 0; i < quantity; i++) {
-        addToCart({
+      addToCart(
+        {
           id: product.id,
           name: product.name,
           price: product.price,
           stock: product.stock,
           image: product.imageUrl,
           sellerId: product.sellerId ?? "",
-        });
-      }
-      // Redirect to cart for buy now
+        },
+        quantity,
+      );
       router.push("/cart");
     }
   };
@@ -210,16 +210,22 @@ export default function ProductDetailPage() {
           {/* Product Info - Takes 3 columns */}
           <div className="lg:col-span-3 space-y-8">
             {/* Product Title & Price */}
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 leading-tight">{product.name}</h1>
-              <div className="mt-4 flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-emerald-600">
+            <div className="space-y-4 border-b border-slate-100 pb-6">
+              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 leading-tight">
+                {product.name}
+              </h1>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-5xl font-bold text-emerald-600">
                   ฿{product.price.toLocaleString("th-TH")}
                 </span>
-                <div className="flex items-center gap-1 text-sm text-slate-600">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="font-medium">4.8</span>
-                  <span className="text-slate-400">(245 รีวิว)</span>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-600">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> 4.8
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300" aria-hidden="true" />
+                  <span className="font-medium text-slate-600">245 รีวิว</span>
+                  <span className="hidden sm:inline h-1 w-1 rounded-full bg-slate-300" aria-hidden="true" />
+                  <span className="text-slate-500">จัดส่งรวดเร็ว ภายใน 2-3 วัน</span>
                 </div>
               </div>
             </div>
@@ -250,30 +256,32 @@ export default function ProductDetailPage() {
 
             {/* Quantity Selector */}
             {product.stock > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">จำนวน</label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200 bg-white text-emerald-700 transition hover:bg-emerald-50"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
-                    className="w-20 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-center text-sm font-medium text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                    min="1"
-                    max={product.stock}
-                  />
-                  <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200 bg-white text-emerald-700 transition hover:bg-emerald-50"
-                  >
-                    +
-                  </button>
-                  <span className="text-sm text-slate-500">สูงสุด {product.stock} ต้น</span>
+              <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-100">
+                <label className="block text-sm font-semibold text-slate-900">เลือกจำนวน</label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-700 font-semibold transition hover:border-emerald-400 hover:text-emerald-600"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
+                      className="w-24 rounded-lg border-2 border-slate-200 bg-white px-4 py-2.5 text-center text-base font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      min="1"
+                      max={product.stock}
+                    />
+                    <button
+                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-700 font-semibold transition hover:border-emerald-400 hover:text-emerald-600"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-sm text-slate-500 font-medium">สูงสุด {product.stock} ต้น</span>
                 </div>
               </div>
             )}
