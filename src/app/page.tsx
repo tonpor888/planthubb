@@ -298,9 +298,10 @@ export default function Home() {
                 ))
               ) : (
                 filteredProducts.map((product) => (
-                <article
+                <Link
                   key={product.id}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  href={`/product/${product.id}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl cursor-pointer"
                 >
                   <div className="relative h-60 overflow-hidden">
                     {product.imageUrl ? (
@@ -342,15 +343,19 @@ export default function Home() {
                         ฿{product.price.toLocaleString("th-TH")}
                       </p>
                       <button
-                        onClick={() => handleAddToCart(product)}
-                        className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-500"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddToCart(product);
+                        }}
+                        className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-500 z-10"
                         disabled={product.stock === 0}
                       >
                         เพิ่มลงตะกร้า
                       </button>
                     </div>
                   </div>
-                </article>
+                </Link>
                 ))
               )}
             </div>
