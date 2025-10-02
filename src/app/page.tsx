@@ -183,7 +183,7 @@ export default function Home() {
                       >
                         <Package className="h-4 w-4" /> คำสั่งซื้อของฉัน
                       </button>
-                      {profile.role === "seller" && (
+                      {(profile.role === "seller" || profile.role === "admin") && (
                         <button
                           onClick={() => goTo("/my-shop")}
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
