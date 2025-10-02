@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <header
-      className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative overflow-hidden"
+      className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative"
       style={{
         backgroundImage: 'url(/image/imageheader.png)',
         backgroundSize: 'cover',
