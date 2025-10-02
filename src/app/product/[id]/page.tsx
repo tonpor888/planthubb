@@ -139,71 +139,62 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/30 to-white">
-      {/* Breadcrumb */}
-      <div className="border-b border-emerald-100 bg-white/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Link href="/" className="hover:text-emerald-600 transition">หน้าแรก</Link>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-slate-900 font-medium">{product.name}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <Link 
           href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition mb-6"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition mb-8"
         >
-          <ArrowLeft className="h-4 w-4" /> กลับไปหน้าแรก
+          <ArrowLeft className="h-4 w-4" /> กลับสู่หน้าแรก
         </Link>
 
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Product Image */}
-          <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-lg">
-              {product.imageUrl && !imageError ? (
-                <Image
-                  src={product.imageUrl}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  priority
-                  unoptimized={true}
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center bg-slate-100">
-                  <div className="text-center">
-                    <Package className="mx-auto h-16 w-16 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">ไม่มีรูปภาพ</p>
+        <div className="grid gap-12 lg:grid-cols-5">
+          {/* Product Image - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-24">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-50 shadow-sm">
+                {product.imageUrl && !imageError ? (
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    priority
+                    unoptimized={true}
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <Package className="mx-auto h-20 w-20 text-slate-300" />
+                      <p className="mt-3 text-sm text-slate-500">ไม่มีรูปภาพ</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              {product.stock === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60">
-                  <span className="rounded-full bg-rose-500 px-6 py-2 text-lg font-bold text-white shadow-xl">
-                    สินค้าหมดชั่วคราว
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button className="flex-1 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 flex items-center justify-center gap-2">
-                <Heart className="h-4 w-4" /> ถูกใจ
-              </button>
-              <button className="flex-1 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 flex items-center justify-center gap-2">
-                <Share2 className="h-4 w-4" /> แชร์
-              </button>
+                )}
+                {product.stock === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm">
+                    <span className="rounded-full bg-rose-500 px-6 py-3 text-base font-bold text-white shadow-xl">
+                      สินค้าหมดชั่วคราว
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Quick Actions */}
+              <div className="mt-4 flex gap-3">
+                <button className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-center gap-2">
+                  <Heart className="h-4 w-4" /> บันทึก
+                </button>
+                <button className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-center gap-2">
+                  <Share2 className="h-4 w-4" /> แชร์
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-6">
+          {/* Product Info - Takes 3 columns */}
+          <div className="lg:col-span-3 space-y-8">
             {/* Product Title & Price */}
             <div>
               <h1 className="text-3xl font-bold text-slate-900 leading-tight">{product.name}</h1>
