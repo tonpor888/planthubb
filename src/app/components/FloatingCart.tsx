@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "../../store/cartStore";
@@ -8,21 +8,21 @@ import { useCartStore } from "../../store/cartStore";
 export function FloatingCart() {
   const itemCount = useCartStore((state) => state.itemCount);
   const [isBouncing, setIsBouncing] = useState(false);
-  const [prevCount, setPrevCount] = useState(0);
+  const prevCountRef = useRef(0);
 
   useEffect(() => {
     // Only animate when items are ADDED (count increases) and count is > 0
-    if (itemCount > prevCount && itemCount > 0) {
+    if (itemCount > prevCountRef.current && itemCount > 0) {
       setIsBouncing(true);
-      const timer = setTimeout(() => setIsBouncing(false), 600);
-      setPrevCount(itemCount);
+      const timer = setTimeout(() => {
+        setIsBouncing(false);
+      }, 600);
+      prevCountRef.current = itemCount;
       return () => clearTimeout(timer);
     }
-    // Update prevCount without animation when count decreases or stays the same
-    if (itemCount !== prevCount) {
-      setPrevCount(itemCount);
-    }
-  }, [itemCount, prevCount]);
+    // Update prevCount without animation
+    prevCountRef.current = itemCount;
+  }, [itemCount]);
 
   return (
     <Link
