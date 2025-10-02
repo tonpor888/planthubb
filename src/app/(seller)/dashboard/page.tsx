@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useAuthContext } from "../../providers/AuthProvider";
 import { useSellerOrders } from "../../hooks/useSellerOrders";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export default function SellerDashboardPage() {
   const { profile } = useAuthContext();
   const { orders, loading, error } = useSellerOrders(profile?.uid ?? "");
