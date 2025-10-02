@@ -140,7 +140,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-32 md:pt-36 space-y-8">
+  <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-36 md:pt-40 lg:pt-48 space-y-8">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-8">
         <div className="flex justify-between items-center">
