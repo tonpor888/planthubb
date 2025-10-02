@@ -1,8 +1,6 @@
 'use client';
 
-'use client';
-
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,15 +40,27 @@ export default function Home() {
   const addToCart = useCartStore((state) => state.addItem);
   const itemCount = useCartStore((state) => state.itemCount);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [products, setProducts] = useState<Record<string, Product>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     const productsRef = ref(realtimeDb, "products");
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const value = snapshot.val() ?? {};
       setProducts(value);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -92,7 +102,7 @@ export default function Home() {
   };
 
   const filteredProducts = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = debouncedQuery.trim().toLowerCase();
     const items = Object.entries(products)
       .map(([id, product]) => ({ ...product, id }))
       .filter((product) => product.active !== false);
@@ -102,7 +112,18 @@ export default function Home() {
     }
 
     return items.filter((product) => product.name.toLowerCase().includes(normalized));
-  }, [products, query]);
+  }, [products, debouncedQuery]);
+
+  const handleAddToCart = useCallback((product: Product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      image: product.imageUrl,
+      sellerId: product.sellerId ?? "",
+    });
+  }, [addToCart]);
 
   return (
     <div className="min-h-screen bg-emerald-50 text-slate-900">
@@ -225,13 +246,13 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-500 to-lime-400 pb-24 pt-20 text-white">
+        <section className="hero-section relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-500 to-lime-400 pb-24 pt-20 text-white">
           <div className="absolute inset-0 opacity-20 mix-blend-soft-light" aria-hidden>
             <div className="absolute -left-10 top-12 h-40 w-40 rounded-full border border-white/40" />
             <div className="absolute -right-10 bottom-10 h-56 w-56 rounded-full border border-white/20" />
           </div>
 
-          <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:flex-row md:items-center">
+          <div className="hero-content relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:flex-row md:items-center">
             <div className="max-w-xl space-y-6">
               <p className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-sm font-medium tracking-wide text-white/90 backdrop-blur">
                 🌿 ตลาดออนไลน์สำหรับคนรักต้นไม้
@@ -274,14 +295,23 @@ export default function Home() {
               </dl>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-white/10 backdrop-blur md:mx-0">
-          <Image
-                src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=900"
+            <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-white/10 backdrop-blur md:mx-0 hero-image">
+              <Image
+                src="/hero-plant.svg"
                 alt="Greenhouse filled with plants"
-                width={720}
-                height={890}
+                width={600}
+                height={740}
                 priority
+                fetchPriority="high"
+                loading="eager"
+                unoptimized
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 90vw, (max-width: 1024px) 50vw, 400px"
                 className="h-full w-full object-cover"
+                onLoad={() => {
+                  // Remove fallback background when image loads
+                  const heroDiv = document.querySelector('.hero-image') as HTMLElement;
+                  if (heroDiv) heroDiv.style.background = 'transparent';
+                }}
               />
               <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/90 p-4 text-emerald-700 shadow-xl">
                 <p className="text-sm font-semibold uppercase tracking-wide text-emerald-500">
@@ -326,7 +356,28 @@ export default function Home() {
             </label>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProducts.map((product) => (
+              {isLoading ? (
+                // Skeleton loading cards
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="group flex h-full flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm"
+                  >
+                    <div className="relative h-60 overflow-hidden bg-slate-200 animate-pulse" />
+                    <div className="flex flex-1 flex-col gap-3 p-6">
+                      <div>
+                        <div className="h-6 bg-slate-200 rounded animate-pulse mb-2" />
+                        <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
+                      </div>
+                      <div className="mt-auto flex items-center justify-between">
+                        <div className="h-6 bg-slate-200 rounded animate-pulse w-20" />
+                        <div className="h-8 bg-slate-200 rounded-full animate-pulse w-24" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredProducts.map((product) => (
                 <article
                   key={product.id}
                   className="group flex h-full flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
@@ -336,8 +387,12 @@ export default function Home() {
                       <Image
                         src={product.imageUrl}
                         alt={product.name}
-                        width={540}
-                        height={320}
+                        width={400}
+                        height={240}
+                        loading="lazy"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        placeholder="blur"
+                        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (
@@ -367,16 +422,7 @@ export default function Home() {
                         ฿{product.price.toLocaleString("th-TH")}
                       </p>
                       <button
-                        onClick={() =>
-                          addToCart({
-                            id: product.id,
-                            name: product.name,
-                            price: product.price,
-                            stock: product.stock,
-                            image: product.imageUrl,
-                            sellerId: product.sellerId ?? "",
-                          })
-                        }
+                        onClick={() => handleAddToCart(product)}
                         className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-500"
                         disabled={product.stock === 0}
                       >
@@ -385,10 +431,11 @@ export default function Home() {
                     </div>
                   </div>
                 </article>
-              ))}
+                ))
+              )}
             </div>
 
-            {filteredProducts.length === 0 && (
+            {!isLoading && filteredProducts.length === 0 && (
               <div className="rounded-3xl border border-dashed border-emerald-200 bg-white py-16 text-center">
                 <p className="text-lg font-medium text-slate-600">
                   ไม่พบสินค้าที่ตรงกับคำค้นหานี้ ลองใช้คำอื่นดูนะคะ 🌱

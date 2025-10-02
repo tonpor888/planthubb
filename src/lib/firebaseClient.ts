@@ -30,6 +30,14 @@ export const firestore = getFirestore(firebaseApp);
 export const realtimeDb = getDatabase(firebaseApp);
 export const storage = getStorage(firebaseApp);
 
+// Enable offline persistence for Firestore
+if (typeof window !== 'undefined') {
+  import('firebase/firestore').then(({ enableNetwork }) => {
+    // Enable network for better performance
+    enableNetwork(firestore).catch(console.error);
+  });
+}
+
 export const collections = {
   products: () => collection(firestore, "products"),
   orders: () => collection(firestore, "orders"),
