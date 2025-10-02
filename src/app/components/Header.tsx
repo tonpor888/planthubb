@@ -285,30 +285,6 @@ export function Header() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-2 text-sm font-medium text-slate-600">
-                <Link
-                  href="/#featured"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Sprout className="h-4 w-4" /> สินค้าแนะนำ
-                </Link>
-                <Link
-                  href="/#benefits"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Sparkles className="h-4 w-4" /> จุดเด่น
-                </Link>
-                <Link
-                  href="/#community"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Users className="h-4 w-4" /> คอมมูนิตี้
-                </Link>
-              </div>
-
               {profile ? (
                 <>
                   <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
@@ -391,6 +367,30 @@ export function Header() {
                   </Link>
                 </div>
               )}
+
+              <div className="flex flex-col gap-2 text-sm font-medium text-slate-600 border-t border-emerald-100 pt-4">
+                <Link
+                  href="/#featured"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Sprout className="h-4 w-4" /> สินค้าแนะนำ
+                </Link>
+                <Link
+                  href="/#benefits"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Sparkles className="h-4 w-4" /> จุดเด่น
+                </Link>
+                <Link
+                  href="/#community"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Users className="h-4 w-4" /> คอมมูนิตี้
+                </Link>
+              </div>
             </div>
           </aside>
         </>,
