@@ -23,11 +23,6 @@ export const metadata: Metadata = {
     "สวน",
     "ปลูกต้นไม้",
   ],
-  icons: {
-    icon: [{ url: "/image/logo.png", type: "image/png" }],
-    shortcut: [{ url: "/image/logo.png", type: "image/png" }],
-    apple: [{ url: "/image/logo.png", type: "image/png" }],
-  },
   openGraph: {
     title: "PlantHub | ศูนย์รวมต้นไม้และดอกไม้",
     description:
@@ -53,8 +48,6 @@ export default function RootLayout({
           as="image"
           fetchPriority="high"
         />
-        <link rel="icon" type="image/png" href="/image/logo.png" />
-        <link rel="shortcut icon" type="image/png" href="/image/logo.png" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://upload.wikimedia.org" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
