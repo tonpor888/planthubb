@@ -41,7 +41,10 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl border-r border-emerald-100">
+      <aside
+        className="fixed left-0 top-[120px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
+        style={{ height: "calc(100vh - 120px)" }}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -125,7 +128,7 @@ export default function AdminLayout({
           </nav>
         </div>
       </aside>
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-8 pb-12 pt-[140px]">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
