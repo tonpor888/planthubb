@@ -5,6 +5,7 @@ import { AuthProvider } from "./providers/AuthProvider";
 import { ToastContainer } from "../components/ui/toast-container";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
+import { FloatingCart } from "./components/FloatingCart";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -140,6 +141,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <FloatingCart />
           <ToastContainer />
         </AuthProvider>
       </body>

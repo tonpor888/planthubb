@@ -10,7 +10,6 @@ import {
   LogIn,
   Store,
   UserCircle,
-  ShoppingCart,
   ChevronDown,
   Package,
   LogOut,
@@ -18,12 +17,10 @@ import {
 } from "lucide-react";
 
 import { useAuthContext } from "../providers/AuthProvider";
-import { useCartStore } from "../../store/cartStore";
 
 export function Header() {
   const router = useRouter();
   const { profile, signOut: signOutUser } = useAuthContext();
-  const itemCount = useCartStore((state) => state.itemCount);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -93,17 +90,6 @@ export function Header() {
           </Link>
 
           <div className="ml-4 flex items-center gap-3">
-            <Link
-              href="/cart"
-              className="relative inline-flex items-center justify-center rounded-full border border-emerald-600 p-3 text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
-            >
-              <ShoppingCart className="h-6 w-6" />
-              {itemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs font-semibold text-white">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
             {profile ? (
               <div className="relative" ref={menuRef}>
                 <button
@@ -176,17 +162,9 @@ export function Header() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/cart"
-            className="hidden items-center gap-2 rounded-full border border-emerald-300 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:inline-flex"
-          >
-            <ShoppingCart className="h-5 w-5" /> ตะกร้า
-          </Link>
-          <button className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:hidden">
-            เมนู
-          </button>
-        </div>
+        <button className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:hidden">
+          เมนู
+        </button>
       </div>
     </header>
   );
