@@ -106,12 +106,26 @@ export default function ProductDetailPage() {
           sellerId: product.sellerId ?? "",
         });
       }
-      router.push("/cart");
+      // Don't redirect, just show success feedback
+      setQuantity(1); // Reset quantity after adding
     }
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
+    if (product && quantity > 0) {
+      for (let i = 0; i < quantity; i++) {
+        addToCart({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          stock: product.stock,
+          image: product.imageUrl,
+          sellerId: product.sellerId ?? "",
+        });
+      }
+      // Redirect to cart for buy now
+      router.push("/cart");
+    }
   };
 
   if (loading) {
