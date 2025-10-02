@@ -72,6 +72,7 @@ export function Header() {
       }}
     >
       <div className="absolute inset-0 bg-emerald-600/60 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-white/20 pointer-events-none"></div>
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-sunlight"></div>
       </div>
@@ -90,7 +91,7 @@ export function Header() {
       `}</style>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-emerald-600 font-semibold text-lg shadow-lg">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-600 text-white font-semibold text-lg shadow-lg">
             PH
           </span>
           <span className="text-3xl font-bold tracking-tight text-white drop-shadow-lg">PlantHub</span>
