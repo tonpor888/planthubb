@@ -72,7 +72,7 @@ export function Header() {
         backgroundRepeat: 'no-repeat',
       }}
     >
-  <div className="absolute inset-0 bg-white/75 pointer-events-none"></div>
+  <div className="absolute inset-0 bg-white/50 pointer-events-none"></div>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 text-white font-semibold text-lg">
