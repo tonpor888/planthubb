@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -25,6 +26,10 @@ export function Header() {
   const { profile, signOut: signOutUser } = useAuthContext();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const originalOverflowRef = useRef<string | null>(null);
 
@@ -113,7 +118,8 @@ export function Header() {
   };
 
   return (
-    <header
+    <>
+      <header
       className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative"
       style={{
         backgroundImage: 'url(/image/imageheader.png)',
@@ -250,139 +256,146 @@ export function Header() {
           เมนู
         </button>
       </div>
-      <div
-        className={`fixed inset-0 z-[1100] transition-opacity duration-300 md:hidden ${
-          isMobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-      </div>
-      <aside
-        className={`fixed inset-y-0 right-0 z-[1200] w-[30vw] max-w-xs min-w-[220px] bg-white/95 backdrop-blur-xl border-l border-emerald-100 shadow-2xl transition-transform duration-500 ease-out md:hidden ${
-          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex h-full flex-col gap-6 px-5 py-6 text-slate-700">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-emerald-700">เมนู</span>
-            <button
-              type="button"
-              className="rounded-full bg-emerald-100 p-2 text-emerald-600 transition hover:bg-emerald-200"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <ChevronDown className="h-5 w-5 rotate-180" />
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2 text-sm font-medium text-slate-600">
-            <Link
-              href="/#featured"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              <Sprout className="h-4 w-4" /> สินค้าแนะนำ
-            </Link>
-            <Link
-              href="/#benefits"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              <Sparkles className="h-4 w-4" /> จุดเด่น
-            </Link>
-            <Link
-              href="/#community"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              <Users className="h-4 w-4" /> คอมมูนิตี้
-            </Link>
-          </div>
-
-          {profile ? (
-            <>
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
-                {profile.profileImage ? (
-                  <Image
-                    src={profile.profileImage}
-                    alt={profile.firstName}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-200">
-                    <User className="h-6 w-6 text-emerald-700" />
-                  </div>
-                )}
-                <div className="flex flex-col">
-                  <span className="text-sm text-slate-500">สวัสดี</span>
-                  <span className="text-base font-semibold text-emerald-700">{profile.firstName} {profile.lastName}</span>
-                </div>
-              </div>
-
-              <nav className="flex flex-col gap-2">
-                <button
-                  onClick={() => goTo("/profile")}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <UserCircle className="h-4 w-4" /> โปรไฟล์ของฉัน
-                </button>
-                <button
-                  onClick={() => goTo("/orders")}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Package className="h-4 w-4" /> คำสั่งซื้อของฉัน
-                </button>
-                {(profile.role === "seller" || profile.role === "admin") && (
-                  <button
-                    onClick={() => goTo("/my-shop")}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                  >
-                    <Store className="h-4 w-4" /> ร้านของฉัน
-                  </button>
-                )}
-                {profile.role === "admin" && (
-                  <button
-                    onClick={() => goTo("/admin/dashboard")}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
-                  >
-                    <Shield className="h-4 w-4" /> แอดมิน
-                  </button>
-                )}
-              </nav>
-
-              <div className="mt-auto flex flex-col gap-3">
-                <div className="h-px bg-emerald-100" />
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-3 py-3 text-base font-semibold text-white shadow transition hover:bg-rose-600"
-                >
-                  <LogOut className="h-4 w-4" /> ออกจากระบบ
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-slate-500">เข้าสู่ระบบเพื่อจัดการบัญชีและคำสั่งซื้อของคุณ</p>
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-3 text-base font-semibold text-white shadow transition hover:bg-emerald-700"
-              >
-                <LogIn className="h-4 w-4" /> เข้าสู่ระบบ
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-3 text-base font-medium text-emerald-600 shadow transition hover:bg-emerald-50"
-              >
-                <Store className="h-4 w-4" /> สมัครสมาชิกร้านค้า
-              </Link>
-            </div>
-          )}
-        </div>
-      </aside>
     </header>
+    {isMounted &&
+      createPortal(
+        <>
+          <div
+            className={`fixed inset-0 z-[1400] transition-opacity duration-300 md:hidden ${
+              isMobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+            }`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <div className="absolute inset-0 bg-white/35 backdrop-blur-md" />
+          </div>
+          <aside
+            className={`fixed inset-y-0 right-0 z-[1500] w-[30vw] max-w-xs min-w-[220px] bg-white/95 backdrop-blur-xl border-l border-emerald-100 shadow-2xl transition-transform duration-500 ease-out md:hidden ${
+              isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <div className="flex h-full flex-col gap-6 px-5 py-6 text-slate-700">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold text-emerald-700">เมนู</span>
+                <button
+                  type="button"
+                  className="rounded-full bg-emerald-100 p-2 text-emerald-600 transition hover:bg-emerald-200"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <ChevronDown className="h-5 w-5 rotate-180" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 text-sm font-medium text-slate-600">
+                <Link
+                  href="/#featured"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Sprout className="h-4 w-4" /> สินค้าแนะนำ
+                </Link>
+                <Link
+                  href="/#benefits"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Sparkles className="h-4 w-4" /> จุดเด่น
+                </Link>
+                <Link
+                  href="/#community"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Users className="h-4 w-4" /> คอมมูนิตี้
+                </Link>
+              </div>
+
+              {profile ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
+                    {profile.profileImage ? (
+                      <Image
+                        src={profile.profileImage}
+                        alt={profile.firstName}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-200">
+                        <User className="h-6 w-6 text-emerald-700" />
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm text-slate-500">สวัสดี</span>
+                      <span className="text-base font-semibold text-emerald-700">{profile.firstName} {profile.lastName}</span>
+                    </div>
+                  </div>
+
+                  <nav className="flex flex-col gap-2">
+                    <button
+                      onClick={() => goTo("/profile")}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <UserCircle className="h-4 w-4" /> โปรไฟล์ของฉัน
+                    </button>
+                    <button
+                      onClick={() => goTo("/orders")}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <Package className="h-4 w-4" /> คำสั่งซื้อของฉัน
+                    </button>
+                    {(profile.role === "seller" || profile.role === "admin") && (
+                      <button
+                        onClick={() => goTo("/my-shop")}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <Store className="h-4 w-4" /> ร้านของฉัน
+                      </button>
+                    )}
+                    {profile.role === "admin" && (
+                      <button
+                        onClick={() => goTo("/admin/dashboard")}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <Shield className="h-4 w-4" /> แอดมิน
+                      </button>
+                    )}
+                  </nav>
+
+                  <div className="mt-auto flex flex-col gap-3">
+                    <div className="h-px bg-emerald-100" />
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-3 py-3 text-base font-semibold text-white shadow transition hover:bg-rose-600"
+                    >
+                      <LogOut className="h-4 w-4" /> ออกจากระบบ
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-slate-500">เข้าสู่ระบบเพื่อจัดการบัญชีและคำสั่งซื้อของคุณ</p>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-3 text-base font-semibold text-white shadow transition hover:bg-emerald-700"
+                  >
+                    <LogIn className="h-4 w-4" /> เข้าสู่ระบบ
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-3 text-base font-medium text-emerald-600 shadow transition hover:bg-emerald-50"
+                  >
+                    <Store className="h-4 w-4" /> สมัครสมาชิกร้านค้า
+                  </Link>
+                </div>
+              )}
+            </div>
+          </aside>
+        </>,
+        document.body
+      )}
+    </>
   );
 }
