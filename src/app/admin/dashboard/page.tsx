@@ -37,6 +37,56 @@ type DashboardStats = {
 export default function AdminDashboard() {
   const router = useRouter();
   const { profile, signOut } = useAuthContext();
+  const menuLinks = [
+    {
+      label: "Dashboard",
+      description: "ภาพรวมระบบ",
+      icon: BarChart3,
+      href: "/admin/dashboard",
+    },
+    {
+      label: "User Management",
+      description: "จัดการผู้ใช้",
+      icon: Users,
+      href: "/admin/users",
+    },
+    {
+      label: "Product Management",
+      description: "จัดการสินค้า",
+      icon: Package,
+      href: "/admin/products",
+    },
+    {
+      label: "Order Management",
+      description: "ติดตามออเดอร์",
+      icon: ShoppingCart,
+      href: "/admin/orders",
+    },
+    {
+      label: "Top Products",
+      description: "สินค้าขายดี",
+      icon: TrendingUp,
+      href: "/admin/top-products",
+    },
+    {
+      label: "Pending Orders",
+      description: "ออเดอร์รอดำเนินการ",
+      icon: Activity,
+      href: "/admin/pending-orders",
+    },
+    {
+      label: "System Settings",
+      description: "ตั้งค่าระบบ",
+      icon: Settings,
+      href: "/admin/settings",
+    },
+    {
+      label: "System Logs",
+      description: "ประวัติระบบ",
+      icon: FileText,
+      href: "/admin/logs",
+    },
+  ];
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalProducts: 0,
@@ -163,6 +213,27 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-4">
+        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+          {menuLinks.map(({ label, description, icon: Icon, href }) => (
+            <button
+              key={label}
+              onClick={() => router.push(href)}
+              className="group flex min-w-[160px] flex-1 items-start gap-3 rounded-2xl border border-emerald-50 bg-emerald-50/40 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition group-hover:bg-emerald-600 group-hover:text-white">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold text-slate-900">{label}</span>
+                <span className="text-xs text-slate-500">{description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-6 hover:shadow-md transition-shadow">
