@@ -14,7 +14,9 @@ import {
   Package,
   LogOut,
   Shield,
+  User,
 } from "lucide-react";
+import Image from "next/image";
 
 import { useAuthContext } from "../providers/AuthProvider";
 
@@ -69,23 +71,23 @@ export function Header() {
         backgroundRepeat: 'no-repeat',
       }}
     >
-  <div className="absolute inset-0 bg-white/50 pointer-events-none"></div>
+  <div className="absolute inset-0 bg-emerald-600/60 pointer-events-none"></div>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 text-white font-semibold text-lg">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-emerald-600 font-semibold text-lg shadow-lg">
             PH
           </span>
-          <span className="text-3xl font-bold tracking-tight text-emerald-700">PlantHub</span>
+          <span className="text-3xl font-bold tracking-tight text-white drop-shadow-lg">PlantHub</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-          <Link href="#featured" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+        <nav className="hidden items-center gap-6 text-sm font-medium text-white md:flex">
+          <Link href="#featured" className="flex items-center gap-2 transition hover:text-white hover:drop-shadow-lg py-2">
             <Sprout className="h-5 w-5" /> สินค้าแนะนำ
           </Link>
-          <Link href="#benefits" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+          <Link href="#benefits" className="flex items-center gap-2 transition hover:text-white hover:drop-shadow-lg py-2">
             <Sparkles className="h-5 w-5" /> จุดเด่น
           </Link>
-          <Link href="#community" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+          <Link href="#community" className="flex items-center gap-2 transition hover:text-white hover:drop-shadow-lg py-2">
             <Users className="h-5 w-5" /> คอมมูนิตี้
           </Link>
 
@@ -94,10 +96,21 @@ export function Header() {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-6 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 border-2 border-white px-6 py-3 text-base font-medium text-white transition hover:bg-emerald-700 shadow-lg"
                 >
-                  <UserCircle className="h-5 w-5" /> สวัสดี {profile.firstName}
-                  <ChevronDown className={`h-5 w-5 transition ${isMenuOpen ? "rotate-180" : "rotate-0"}`} />
+                  {profile.profileImage ? (
+                    <Image
+                      src={profile.profileImage}
+                      alt={profile.firstName}
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-white" />
+                  )}
+                  <span className="text-white">สวัสดี {profile.firstName}</span>
+                  <ChevronDown className={`h-5 w-5 text-white transition ${isMenuOpen ? "rotate-180" : "rotate-0"}`} />
                 </button>
 
                 {isMenuOpen && (
@@ -147,13 +160,13 @@ export function Header() {
               <>
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-6 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-white px-6 py-3 text-base font-medium text-white transition hover:bg-white hover:text-emerald-600 shadow-lg"
                 >
                   <Store className="h-5 w-5" /> สมัครสมาชิกร้านค้า
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-semibold text-emerald-600 shadow-lg transition hover:bg-emerald-50"
                 >
                   <LogIn className="h-5 w-5" /> เข้าสู่ระบบ
                 </Link>
@@ -162,7 +175,7 @@ export function Header() {
           </div>
         </nav>
 
-        <button className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:hidden">
+        <button className="inline-flex items-center gap-2 rounded-full border-2 border-white px-5 py-3 text-base font-medium text-white transition hover:bg-white hover:text-emerald-600 md:hidden shadow-lg">
           เมนู
         </button>
       </div>
