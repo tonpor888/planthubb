@@ -127,32 +127,33 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-emerald-50 text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
+      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative overflow-hidden" style={{ backgroundImage: 'url(/image/imageheader.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0 bg-white/75 backdrop-blur-sm"></div>
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 text-white font-semibold">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 text-white font-semibold text-lg">
               PH
             </span>
-            <span className="text-2xl font-bold tracking-tight text-emerald-700">PlantHub</span>
+            <span className="text-3xl font-bold tracking-tight text-emerald-700">PlantHub</span>
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-            <Link href="#featured" className="flex items-center gap-2 transition hover:text-emerald-600">
-              <Sprout className="h-4 w-4" /> สินค้าแนะนำ
+            <Link href="#featured" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+              <Sprout className="h-5 w-5" /> สินค้าแนะนำ
             </Link>
-            <Link href="#benefits" className="flex items-center gap-2 transition hover:text-emerald-600">
-              <Sparkles className="h-4 w-4" /> จุดเด่น
+            <Link href="#benefits" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+              <Sparkles className="h-5 w-5" /> จุดเด่น
             </Link>
-            <Link href="#community" className="flex items-center gap-2 transition hover:text-emerald-600">
-              <Users className="h-4 w-4" /> คอมมูนิตี้
+            <Link href="#community" className="flex items-center gap-2 transition hover:text-emerald-600 py-2">
+              <Users className="h-5 w-5" /> คอมมูนิตี้
             </Link>
 
             <div className="ml-4 flex items-center gap-3">
               <Link
                 href="/cart"
-                className="relative inline-flex items-center justify-center rounded-full border border-emerald-600 p-2 text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
+                className="relative inline-flex items-center justify-center rounded-full border border-emerald-600 p-3 text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-6 w-6" />
                 {itemCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs font-semibold text-white">
                     {itemCount}
@@ -163,10 +164,10 @@ export default function Home() {
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setIsMenuOpen((prev) => !prev)}
-                    className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-6 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
                   >
-                    <UserCircle className="h-4 w-4" /> สวัสดี {profile.firstName}
-                    <ChevronDown className={`h-4 w-4 transition ${isMenuOpen ? "rotate-180" : "rotate-0"}`} />
+                    <UserCircle className="h-5 w-5" /> สวัสดี {profile.firstName}
+                    <ChevronDown className={`h-5 w-5 transition ${isMenuOpen ? "rotate-180" : "rotate-0"}`} />
                   </button>
 
                   {isMenuOpen && (
@@ -216,15 +217,15 @@ export default function Home() {
                 <>
                   <Link
                     href="/register"
-                    className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-6 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
                   >
-                    <Store className="h-4 w-4" /> สมัครสมาชิกร้านค้า
+                    <Store className="h-5 w-5" /> สมัครสมาชิกร้านค้า
                   </Link>
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110"
                   >
-                    <LogIn className="h-4 w-4" /> เข้าสู่ระบบ
+                    <LogIn className="h-5 w-5" /> เข้าสู่ระบบ
                   </Link>
                 </>
               )}
@@ -234,11 +235,11 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Link
               href="/cart"
-              className="hidden items-center gap-2 rounded-full border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 md:inline-flex"
+              className="hidden items-center gap-2 rounded-full border border-emerald-300 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:inline-flex"
             >
-              <ShoppingCart className="h-4 w-4" /> ตะกร้า
+              <ShoppingCart className="h-5 w-5" /> ตะกร้า
             </Link>
-            <button className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 md:hidden">
+            <button className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-base font-medium text-emerald-700 transition hover:bg-emerald-100 md:hidden">
               เมนู
             </button>
           </div>
