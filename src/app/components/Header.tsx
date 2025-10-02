@@ -63,8 +63,8 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative overflow-hidden" style={{ backgroundImage: 'url(/image/imageheader.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="absolute inset-0 bg-white/75 backdrop-blur-sm"></div>
+    <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative overflow-hidden" style={{ backgroundImage: 'url(/image/imageheader.png)', backgroundSize: 'auto 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+      <div className="absolute inset-0 bg-white/80"></div>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 text-white font-semibold text-lg">
