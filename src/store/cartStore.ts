@@ -13,9 +13,6 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
-};
-
-type CartComputed = {
   itemCount: number;
   subtotal: number;
 };
@@ -27,23 +24,29 @@ type CartActions = {
   clearCart: () => void;
 };
 
-export type CartStore = CartState & CartComputed & CartActions;
+export type CartStore = CartState & CartActions;
+
+const calculateItemCount = (items: CartItem[]) => {
+  return items.reduce((acc, item) => acc + item.quantity, 0);
+};
+
+const calculateSubtotal = (items: CartItem[]) => {
+  return items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+};
 
 export const useCartStore = create<CartStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       items: [],
-      get itemCount() {
-        return get().items.reduce((acc, item) => acc + item.quantity, 0);
-      },
-      get subtotal() {
-        return get().items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-      },
+      itemCount: 0,
+      subtotal: 0,
       addItem: (item, qty = 1) => {
         set((state) => {
           const existing = state.items.find((i) => i.id === item.id);
+          let newItems: CartItem[];
+          
           if (existing) {
-            const updated = state.items.map((i) =>
+            newItems = state.items.map((i) =>
               i.id === item.id
                 ? {
                     ...i,
@@ -51,33 +54,56 @@ export const useCartStore = create<CartStore>()(
                   }
                 : i,
             );
-            return { items: updated };
+          } else {
+            newItems = [...state.items, { ...item, quantity: Math.min(qty, item.stock) }];
           }
+          
           return {
-            items: [...state.items, { ...item, quantity: Math.min(qty, item.stock) }],
+            items: newItems,
+            itemCount: calculateItemCount(newItems),
+            subtotal: calculateSubtotal(newItems),
           };
         });
       },
       removeItem: (id) => {
-        set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
+        set((state) => {
+          const newItems = state.items.filter((item) => item.id !== id);
+          return {
+            items: newItems,
+            itemCount: calculateItemCount(newItems),
+            subtotal: calculateSubtotal(newItems),
+          };
+        });
       },
       updateQuantity: (id, quantity) => {
-        set((state) => ({
-          items: state.items
+        set((state) => {
+          const newItems = state.items
             .map((item) => {
               if (item.id !== id) return item;
               const safeQty = Math.max(0, Math.min(quantity, item.stock));
               return { ...item, quantity: safeQty };
             })
-            .filter((item) => item.quantity > 0),
-        }));
+            .filter((item) => item.quantity > 0);
+          
+          return {
+            items: newItems,
+            itemCount: calculateItemCount(newItems),
+            subtotal: calculateSubtotal(newItems),
+          };
+        });
       },
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], itemCount: 0, subtotal: 0 }),
     }),
     {
       name: "planthub-cart",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.itemCount = calculateItemCount(state.items);
+          state.subtotal = calculateSubtotal(state.items);
+        }
+      },
     },
   ),
 );
