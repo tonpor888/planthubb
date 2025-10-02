@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <header
-      className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative"
+      className="sticky top-0 z-50 border-b border-emerald-100 bg-white/85 backdrop-blur relative overflow-hidden"
       style={{
         backgroundImage: 'url(/image/imageheader.png)',
         backgroundSize: 'cover',
@@ -71,7 +71,23 @@ export function Header() {
         backgroundRepeat: 'no-repeat',
       }}
     >
-  <div className="absolute inset-0 bg-emerald-600/60 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-emerald-600/60 pointer-events-none"></div>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-sunlight"></div>
+      </div>
+      <style jsx>{`
+        @keyframes sunlight {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        .animate-sunlight {
+          animation: sunlight 8s ease-in-out infinite;
+        }
+      `}</style>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-8 relative z-10">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-emerald-600 font-semibold text-lg shadow-lg">
@@ -96,7 +112,7 @@ export function Header() {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 border-2 border-white px-6 py-3 text-base font-medium text-white transition hover:bg-emerald-700 shadow-lg"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3 text-base font-medium text-white transition hover:bg-emerald-700 shadow-lg"
                 >
                   {profile.profileImage ? (
                     <Image
