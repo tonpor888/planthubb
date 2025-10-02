@@ -11,13 +11,17 @@ export function FloatingCart() {
   const [prevCount, setPrevCount] = useState(0);
 
   useEffect(() => {
-    if (itemCount > prevCount) {
+    // Only animate when items are ADDED (count increases) and count is > 0
+    if (itemCount > prevCount && itemCount > 0) {
       setIsBouncing(true);
       const timer = setTimeout(() => setIsBouncing(false), 600);
       setPrevCount(itemCount);
       return () => clearTimeout(timer);
     }
-    setPrevCount(itemCount);
+    // Update prevCount without animation when count decreases or stays the same
+    if (itemCount !== prevCount) {
+      setPrevCount(itemCount);
+    }
   }, [itemCount, prevCount]);
 
   return (
