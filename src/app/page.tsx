@@ -113,21 +113,13 @@ export default function Home() {
   return (
     <>
     <section id="featured" className="mx-auto w-full max-w-6xl px-4 py-16">
-          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                สินค้าแนะนำสำหรับคุณ
-              </h2>
-              <p className="mt-2 max-w-2xl text-lg text-slate-600">
-                สำรวจพันธุ์ไม้ยอดนิยมที่ได้รับความนิยมสูงสุดจากคอมมูนิตี้ของเรา
-              </p>
-            </div>
-            <Link
-              href="/shop"
-              className="inline-flex items-center rounded-full border border-emerald-600 px-5 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-600 hover:text-white"
-            >
-              ดูทั้งหมด
-            </Link>
+          <div className="mb-10">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              สินค้าแนะนำสำหรับคุณ
+            </h2>
+            <p className="mt-2 max-w-2xl text-lg text-slate-600">
+              สำรวจพันธุ์ไม้ยอดนิยมที่ได้รับความนิยมสูงสุดจากคอมมูนิตี้ของเรา
+            </p>
           </div>
 
           <div className="mt-10 flex flex-col gap-6">
