@@ -142,32 +142,39 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
-      <aside
-        className="hidden lg:flex lg:flex-col sticky left-0 top-[114px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto self-start"
-        style={{ maxHeight: "calc(100vh - 114px)" }}
-      >
-        <div className="p-6">
-          {navigation}
-        </div>
-      </aside>
-      <main className="px-6 pb-12 pt-[30px] lg:ml-64 lg:px-8 lg:pt-[68px]">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6 flex items-center justify-between lg:hidden">
-            <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>
-            <button
-              type="button"
-              onClick={() => setIsNavOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50"
-            >
-              <span>เมนูผู้ดูแล</span>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+      <div className="flex">
+        {/* Sidebar */}
+        <aside
+          className="hidden lg:flex lg:flex-col sticky left-0 top-[114px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto self-start"
+          style={{ maxHeight: "calc(100vh - 114px)" }}
+        >
+          <div className="p-6">
+            {navigation}
           </div>
-          {children}
-        </div>
-      </main>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 px-6 pb-12 pt-[30px] lg:px-8 lg:pt-[68px]">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-6 flex items-center justify-between lg:hidden">
+              <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>
+              <button
+                type="button"
+                onClick={() => setIsNavOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50"
+              >
+                <span>เมนูผู้ดูแล</span>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Menu Portal */}
       {isMounted &&
         createPortal(
           <>
