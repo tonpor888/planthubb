@@ -15,13 +15,15 @@ import {
   Heart,
   Share2,
   MessageCircle,
-  ChevronRight
+  ChevronRight,
+  Eye
 } from "lucide-react";
-import { ref, get } from "firebase/database";
+import { ref, get, set, runTransaction } from "firebase/database";
 import { doc, getDoc } from "firebase/firestore";
 
 import { realtimeDb, firestore } from "@/lib/firebaseClient";
 import { useCartStore } from "@/store/cartStore";
+import { useAuthContext } from "@/app/providers/AuthProvider";
 
 type Product = {
   id: string;
@@ -34,6 +36,8 @@ type Product = {
   active?: boolean;
   category?: string;
   createdAt?: number;
+  views?: number;
+  viewedBy?: string[];
 };
 
 type SellerProfile = {
@@ -51,6 +55,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
+  const { firebaseUser } = useAuthContext();
   const addToCart = useCartStore((state) => state.addItem);
   
   const [product, setProduct] = useState<Product | null>(null);
@@ -72,6 +77,19 @@ export default function ProductDetailPage() {
           const productData = { id: productId, ...snapshot.val() } as Product;
           setProduct(productData);
           
+          // Track view (only once per user)
+          if (firebaseUser) {
+            const viewedBy = productData.viewedBy || [];
+            if (!viewedBy.includes(firebaseUser.uid)) {
+              const updatedViewedBy = [...viewedBy, firebaseUser.uid];
+              await set(ref(realtimeDb, `products/${productId}`), {
+                ...productData,
+                views: (productData.views || 0) + 1,
+                viewedBy: updatedViewedBy
+              });
+            }
+          }
+          
           // Fetch seller info if sellerId exists
           if (productData.sellerId) {
             const sellerDoc = await getDoc(doc(firestore, "users", productData.sellerId));
@@ -92,7 +110,7 @@ export default function ProductDetailPage() {
     if (productId) {
       fetchProduct();
     }
-  }, [productId]);
+  }, [productId, firebaseUser]);
 
   const handleAddToCart = () => {
     if (product && quantity > 0) {

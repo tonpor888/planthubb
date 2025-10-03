@@ -1,6 +1,8 @@
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { ref, runTransaction } from "firebase/database";
 
 import { firestore } from "../../lib/firebaseClient";
+import { realtimeDb } from "../../lib/firebaseClient";
 import type { CartItem } from "../../store/cartStore";
 import type { CheckoutAddress, PaymentMethod } from "../../types/cart";
 
@@ -40,6 +42,17 @@ export async function createOrder(payload: CreateOrderPayload) {
     image: item.image,
     sellerId: item.sellerId,
   }));
+
+  // Decrease stock for each product in Realtime Database
+  for (const item of payload.cartItems) {
+    const productRef = ref(realtimeDb, `products/${item.id}`);
+    await runTransaction(productRef, (product) => {
+      if (product) {
+        product.stock = Math.max(0, (product.stock || 0) - item.quantity);
+      }
+      return product;
+    });
+  }
 
   const now = new Date();
   const orderData = {

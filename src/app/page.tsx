@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { onValue, ref } from "firebase/database";
+import { Eye } from "lucide-react";
 
 import { useCartStore } from "../store/cartStore";
 import { realtimeDb } from "@/lib/firebaseClient";
@@ -17,6 +18,8 @@ type Product = {
   description: string;
   sellerId?: string;
   active?: boolean;
+  views?: number;
+  createdAt?: number;
 };
 
 export default function Home() {
@@ -25,6 +28,7 @@ export default function Home() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high" | "views">("newest");
 
   // Debounce search query
   useEffect(() => {
@@ -48,16 +52,31 @@ export default function Home() {
 
   const filteredProducts = useMemo(() => {
     const normalized = debouncedQuery.trim().toLowerCase();
-    const items = Object.entries(products)
+    let items = Object.entries(products)
       .map(([id, product]) => ({ ...product, id }))
       .filter((product) => product.active !== false);
 
-    if (!normalized) {
-      return items;
+    if (normalized) {
+      items = items.filter((product) => product.name.toLowerCase().includes(normalized));
     }
 
-    return items.filter((product) => product.name.toLowerCase().includes(normalized));
-  }, [products, debouncedQuery]);
+    // Sort products
+    items.sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "views":
+          return (b.views || 0) - (a.views || 0);
+        case "newest":
+        default:
+          return (b.createdAt || 0) - (a.createdAt || 0);
+      }
+    });
+
+    return items;
+  }, [products, debouncedQuery, sortBy]);
 
   const handleAddToCart = useCallback((product: Product) => {
     addToCart({
@@ -91,15 +110,27 @@ export default function Home() {
           </div>
 
           <div className="mt-10 flex flex-col gap-6">
-            <label className="relative flex w-full items-center">
-              <span className="absolute left-4 text-sm text-slate-400">🔍</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="ค้นหาต้นไม้ ดอกไม้ หรือชื่อร้าน..."
-                className="w-full rounded-full border border-emerald-100 bg-white px-12 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-              />
-            </label>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <label className="relative flex flex-1 items-center">
+                <span className="absolute left-4 text-sm text-slate-400">🔍</span>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="ค้นหาต้นไม้ ดอกไม้ หรือชื่อร้าน..."
+                  className="w-full rounded-full border border-emerald-100 bg-white px-12 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                />
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="rounded-full border border-emerald-100 bg-white px-6 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+              >
+                <option value="newest">ใหม่ล่าสุด</option>
+                <option value="price-low">ราคา: ต่ำ-สูง</option>
+                <option value="price-high">ราคา: สูง-ต่ำ</option>
+                <option value="views">ยอดนิยม</option>
+              </select>
+            </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {isLoading ? (
@@ -146,6 +177,11 @@ export default function Home() {
                         <span className="text-slate-400">ไม่มีรูปภาพ</span>
                       </div>
                     )}
+                    {/* View count badge */}
+                    <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow backdrop-blur-sm">
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>{product.views || 0}</span>
+                    </div>
                     {product.stock === 0 ? (
                       <span className="absolute left-4 top-4 rounded-full bg-rose-500 px-3 py-1 text-xs font-semibold text-white">
                         สินค้าหมดชั่วคราว
