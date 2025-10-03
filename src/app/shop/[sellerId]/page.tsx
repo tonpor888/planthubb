@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Store, MapPin, Star, Eye, Search } from "lucide-react";
+import { ArrowLeft, Store, MapPin, Star, Eye, Search, ChevronDown, SortAsc } from "lucide-react";
 import { ref, get, onValue } from "firebase/database";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -35,6 +35,18 @@ type SellerProfile = {
   shopLocation?: string;
 };
 
+type SortOption = {
+  value: "newest" | "price-low" | "price-high" | "views";
+  label: string;
+};
+
+const sortOptions: SortOption[] = [
+  { value: "newest", label: "ใหม่ล่าสุด" },
+  { value: "price-low", label: "ราคา: ต่ำ-สูง" },
+  { value: "price-high", label: "ราคา: สูง-ต่ำ" },
+  { value: "views", label: "ยอดนิยม" },
+];
+
 export default function ShopPage() {
   const params = useParams();
   const sellerId = params.sellerId as string;
@@ -45,6 +57,8 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high" | "views">("newest");
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
     const fetchSellerAndProducts = async () => {
@@ -121,6 +135,13 @@ export default function ShopPage() {
     });
   };
 
+  const handleSortSelect = (value: typeof sortBy) => {
+    setSortBy(value);
+    setIsSortOpen(false);
+  };
+
+  const selectedSortLabel = sortOptions.find(opt => opt.value === sortBy)?.label || "เรียงตาม";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-emerald-50/30 flex items-center justify-center">
@@ -182,25 +203,67 @@ export default function ShopPage() {
         {/* Search and Sort */}
         <div className="mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex flex-1 items-center">
-              <Search className="absolute left-4 h-5 w-5 text-slate-400" />
+            {/* Search Bar with Animation */}
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 z-10" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
                 placeholder="ค้นหาสินค้าในร้านนี้..."
-                className="w-full rounded-full border border-emerald-100 bg-white pl-12 pr-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                className={`w-full rounded-full border bg-white pl-12 pr-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition-all duration-300 ${
+                  isSearchFocused 
+                    ? 'border-emerald-400 ring-2 ring-emerald-200 scale-[1.02]' 
+                    : 'border-emerald-100 hover:border-emerald-300'
+                }`}
               />
             </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-full border border-emerald-100 bg-white px-6 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-            >
-              <option value="newest">ใหม่ล่าสุด</option>
-              <option value="price-low">ราคา: ต่ำ-สูง</option>
-              <option value="price-high">ราคา: สูง-ต่ำ</option>
-              <option value="views">ยอดนิยม</option>
-            </select>
+
+            {/* Custom Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-6 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-50 min-w-[180px] justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <SortAsc className="h-4 w-4 text-emerald-600" />
+                  <span>{selectedSortLabel}</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isSortOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsSortOpen(false)}
+                  />
+                  
+                  {/* Dropdown Content */}
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-emerald-100 bg-white p-2 shadow-xl z-20 animate-slideDown origin-top">
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleSortSelect(option.value)}
+                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-all duration-150 ${
+                          sortBy === option.value
+                            ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                            : 'text-slate-700 hover:bg-emerald-50/50 hover:text-emerald-600'
+                        }`}
+                      >
+                        {option.label}
+                        {sortBy === option.value && (
+                          <span className="ml-auto h-2 w-2 rounded-full bg-emerald-600"></span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
