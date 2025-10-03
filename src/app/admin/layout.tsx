@@ -143,8 +143,8 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
       <aside
-        className="hidden lg:flex lg:flex-col fixed left-0 top-[114px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
-        style={{ height: "calc(100vh - 114px)" }}
+        className="hidden lg:flex lg:flex-col sticky left-0 top-[114px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto self-start"
+        style={{ maxHeight: "calc(100vh - 114px)" }}
       >
         <div className="p-6">
           {navigation}
