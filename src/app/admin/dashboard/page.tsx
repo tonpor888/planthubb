@@ -163,20 +163,28 @@ export default function AdminDashboard() {
   return (
   <div className="mx-auto w-full max-w-6xl px-4 pb-16 space-y-8">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h1>
-            <p className="text-slate-600">ภาพรวมระบบ PlantHub แบบเรียลไทม์</p>
+      <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-6 sm:p-8">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              แผงควบคุมผู้ดูแลระบบ
+            </span>
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Admin Dashboard</h1>
+            <p className="text-sm text-slate-600 sm:text-base">
+              ภาพรวมระบบ PlantHub แบบเรียลไทม์ พร้อมเครื่องมือดูแลระบบครบถ้วนในที่เดียว
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-slate-500">ยินดีต้อนรับ</p>
-              <p className="font-semibold text-slate-900">{profile?.firstName} {profile?.lastName}</p>
+          <div className="flex w-full flex-col gap-4 sm:flex-row md:w-auto md:items-center">
+            <div className="flex-1 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 sm:flex-none sm:min-w-[220px]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">ยินดีต้อนรับ</p>
+              <p className="text-base font-semibold text-slate-900">
+                {profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "ผู้ดูแลระบบ" : "ผู้ดูแลระบบ"}
+              </p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-lime-400 text-white rounded-xl hover:shadow-lg transition-all duration-200"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-lime-400 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md sm:w-auto"
             >
               <LogOut className="h-4 w-4" />
               ออกจากระบบ

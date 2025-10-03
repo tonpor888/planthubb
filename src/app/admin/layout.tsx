@@ -183,7 +183,7 @@ export default function AdminLayout({
               onClick={() => setIsNavOpen(false)}
             />
             <div
-              className={`fixed inset-y-0 right-0 z-[1500] w-[85vw] max-w-sm bg-white shadow-2xl border-l border-emerald-100 transition-transform duration-500 ease-out lg:hidden ${
+              className={`fixed inset-y-0 right-0 z-[1500] w-[70vw] max-w-xs md:max-w-sm bg-white shadow-2xl border-l border-emerald-100 transition-transform duration-500 ease-out lg:hidden ${
                 isNavOpen ? "translate-x-0" : "translate-x-full"
               }`}
             >
