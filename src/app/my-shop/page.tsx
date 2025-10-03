@@ -34,7 +34,7 @@ type EditForm = {
 
 export default function MyShopPage() {
   const router = useRouter();
-  const { profile } = useAuthContext();
+  const { profile, initializing } = useAuthContext();
   const [products, setProducts] = useState<Record<string, ShopProduct>>({});
   const [orders, setOrders] = useState<any[]>([]);
   const [ready, setReady] = useState(false);
@@ -54,6 +54,8 @@ export default function MyShopPage() {
   });
 
   useEffect(() => {
+    if (initializing) return;
+
     if (!profile) {
       router.replace("/login");
       return;
@@ -89,11 +91,11 @@ export default function MyShopPage() {
       unsubscribeProducts();
       unsubscribeCoupons();
     };
-  }, [profile, router]);
+  }, [initializing, profile, router]);
 
   // Separate effect to calculate sales data when products change
   useEffect(() => {
-    if (!profile) return;
+    if (initializing || !profile) return;
 
     // Fetch orders from Firestore
     const ordersRef = collection(firestore, "orders");
@@ -113,7 +115,7 @@ export default function MyShopPage() {
     });
 
     return () => unsubscribeOrders();
-  }, [profile, products]);
+  }, [initializing, profile, products]);
 
   const myProducts = useMemo(() => {
     if (!profile) return [];

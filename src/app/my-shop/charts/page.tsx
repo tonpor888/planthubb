@@ -30,11 +30,13 @@ type Order = {
 
 export default function SellerChartsPage() {
   const router = useRouter();
-  const { profile } = useAuthContext();
+  const { profile, initializing } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (initializing) return;
+
     if (!profile || (profile.role !== "seller" && profile.role !== "admin")) {
       router.push("/");
       return;
@@ -62,7 +64,7 @@ export default function SellerChartsPage() {
     });
 
     return () => unsubscribe();
-  }, [profile, router]);
+  }, [initializing, profile, router]);
 
   // คำนวณข้อมูลสำหรับกราฟ
   const getMonthlyData = () => {

@@ -36,7 +36,7 @@ type EditForm = {
 
 export default function CouponsPage() {
   const router = useRouter();
-  const { profile } = useAuthContext();
+  const { profile, initializing } = useAuthContext();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,6 +53,8 @@ export default function CouponsPage() {
   });
 
   useEffect(() => {
+    if (initializing) return;
+
     if (!profile) {
       router.push("/login");
       return;
@@ -75,7 +77,7 @@ export default function CouponsPage() {
     });
 
     return () => unsubscribe();
-  }, [profile, router]);
+  }, [initializing, profile, router]);
 
   const filteredCoupons = useMemo(() => {
     if (!searchQuery.trim()) return coupons;

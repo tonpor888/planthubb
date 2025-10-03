@@ -23,7 +23,7 @@ type SalesReport = {
 
 export default function ReportsPage() {
   const router = useRouter();
-  const { profile } = useAuthContext();
+  const { profile, initializing } = useAuthContext();
   const [report, setReport] = useState<SalesReport>({
     totalSales: 0,
     totalOrders: 0,
@@ -34,6 +34,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (initializing) return;
+
     if (!profile) {
       router.push("/login");
       return;
@@ -87,7 +89,7 @@ export default function ReportsPage() {
     });
 
     return () => unsubscribe();
-  }, [profile, router]);
+  }, [initializing, profile, router]);
 
   if (loading) {
     return (

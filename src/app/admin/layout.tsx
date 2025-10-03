@@ -22,7 +22,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { profile, firebaseUser } = useAuthContext();
+  const { profile, firebaseUser, initializing } = useAuthContext();
   const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -52,18 +52,17 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    // ตรวจสอบการเข้าสู่ระบบ
+    if (initializing) return;
+
     if (!firebaseUser) {
-      router.push("/admin/login");
+      router.replace("/admin/login");
       return;
     }
 
-    // ตรวจสอบ role ของผู้ใช้
-    if (profile?.role !== "admin") {
-      router.push("/");
-      return;
+    if (!profile || profile.role !== "admin") {
+      router.replace("/");
     }
-  }, [firebaseUser, profile, router]);
+  }, [firebaseUser, profile, initializing, router]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -80,7 +79,7 @@ export default function AdminLayout({
   }, [isNavOpen, isMounted]);
 
   // แสดง loading ขณะตรวจสอบ
-  if (!firebaseUser || profile?.role !== "admin") {
+  if (initializing || !firebaseUser || !profile || profile.role !== "admin") {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -144,14 +143,14 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
       <aside
-        className="hidden lg:flex lg:flex-col fixed left-0 top-[96px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
-        style={{ height: "calc(100vh - 96px)" }}
+        className="hidden lg:flex lg:flex-col fixed left-0 top-[88px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
+        style={{ height: "calc(100vh - 88px)" }}
       >
         <div className="p-6">
           {navigation}
         </div>
       </aside>
-      <main className="px-6 pb-12 pt-[104px] lg:ml-64 lg:px-8 lg:pt-[112px]">
+      <main className="px-6 pb-12 pt-[96px] lg:ml-64 lg:px-8 lg:pt-[104px]">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex items-center justify-between lg:hidden">
             <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>

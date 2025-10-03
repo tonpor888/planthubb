@@ -31,12 +31,14 @@ type Order = {
 
 export default function SellerOrdersPage() {
   const router = useRouter();
-  const { profile } = useAuthContext();
+  const { profile, initializing } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    if (initializing) return;
+
     if (!profile) {
       router.push("/login");
       return;
@@ -62,7 +64,7 @@ export default function SellerOrdersPage() {
     });
 
     return () => unsubscribe();
-  }, [profile, router]);
+  }, [initializing, profile, router]);
 
   const filteredOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders;
