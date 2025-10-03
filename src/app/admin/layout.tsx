@@ -142,18 +142,18 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
-      <div className="flex min-h-screen">
+      <div className="flex">
         {/* Sidebar */}
-        <aside
-          className="hidden lg:flex lg:flex-col sticky left-0 top-[114px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto self-start h-[calc(100vh-114px)]"
-        >
-          <div className="p-6 flex-1">
-            {navigation}
+        <aside className="hidden lg:block w-64 bg-white shadow-xl border-r border-emerald-100">
+          <div className="sticky top-[114px] h-[calc(100vh-114px)] overflow-y-auto">
+            <div className="p-6">
+              {navigation}
+            </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 px-6 pb-12 pt-[30px] lg:px-8 lg:pt-[68px] min-h-screen">
+        <main className="flex-1 px-6 pb-12 pt-[30px] lg:px-8 lg:pt-[68px]">
           <div className="max-w-7xl mx-auto">
             <div className="mb-6 flex items-center justify-between lg:hidden">
               <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>
