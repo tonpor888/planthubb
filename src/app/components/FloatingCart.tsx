@@ -183,7 +183,7 @@ export function FloatingCart() {
               </div>
               
               <Link
-                href="/cart"
+                href="/checkout"
                 onClick={() => setIsPanelOpen(false)}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-105"
               >
