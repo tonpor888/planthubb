@@ -1,10 +1,10 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CreditCard, Truck, Banknote, QrCode, CalendarCheck, DollarSign, Receipt, FileText, ArrowLeft } from "lucide-react";
+import { CreditCard, Truck, Banknote, QrCode, CalendarCheck, DollarSign, Receipt, FileText, ArrowLeft, MapPin, Check } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 import { useAuthContext } from "../providers/AuthProvider";
@@ -28,9 +28,22 @@ type Coupon = {
   isActive: boolean;
 };
 
+interface SavedAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string;
+  district: string;
+  province: string;
+  postalCode: string;
+  isDefault: boolean;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { firebaseUser } = useAuthContext();
+  const { firebaseUser, profile } = useAuthContext();
   const { items, clearCart } = useCartStore();
   const cartSubtotal = useMemo(() => items.reduce((sum, item) => sum + item.price * item.quantity, 0), [items]);
 
@@ -52,8 +65,57 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentProofUrl, setPaymentProofUrl] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [useNewAddress, setUseNewAddress] = useState(false);
+  const [saveThisAddress, setSaveThisAddress] = useState(false);
 
   const deliveryFee = items.length > 0 ? 40 : 0;
+
+  // Load saved addresses from profile
+  useEffect(() => {
+    if (profile && (profile as any).savedAddresses) {
+      const addresses = (profile as any).savedAddresses;
+      setSavedAddresses(addresses);
+      
+      // Auto-select default address if exists
+      const defaultAddr = addresses.find((addr: SavedAddress) => addr.isDefault);
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+        setAddress({
+          fullName: defaultAddr.fullName,
+          phone: defaultAddr.phone,
+          addressLine1: defaultAddr.addressLine1,
+          addressLine2: defaultAddr.addressLine2,
+          district: defaultAddr.district,
+          province: defaultAddr.province,
+          postalCode: defaultAddr.postalCode,
+        });
+      } else if (addresses.length === 0) {
+        setUseNewAddress(true);
+      }
+    } else {
+      setUseNewAddress(true);
+    }
+  }, [profile]);
+
+  // When user selects a saved address
+  const handleSelectAddress = (addressId: string) => {
+    const selectedAddr = savedAddresses.find(addr => addr.id === addressId);
+    if (selectedAddr) {
+      setSelectedAddressId(addressId);
+      setUseNewAddress(false);
+      setAddress({
+        fullName: selectedAddr.fullName,
+        phone: selectedAddr.phone,
+        addressLine1: selectedAddr.addressLine1,
+        addressLine2: selectedAddr.addressLine2,
+        district: selectedAddr.district,
+        province: selectedAddr.province,
+        postalCode: selectedAddr.postalCode,
+      });
+    }
+  };
 
   const discountAmount = useMemo(() => {
     if (!couponApplied || !appliedCoupon) return 0;
@@ -95,8 +157,8 @@ export default function CheckoutPage() {
       
       // Check if coupon is still valid
       const now = new Date();
-      const validFrom = couponData.validFrom?.toDate() || new Date();
-      const validUntil = couponData.validUntil?.toDate() || new Date();
+      const validFrom = couponData.validFrom instanceof Date ? couponData.validFrom : new Date(couponData.validFrom);
+      const validUntil = couponData.validUntil instanceof Date ? couponData.validUntil : new Date(couponData.validUntil);
       
       if (now < validFrom || now > validUntil) {
         setDiscountError("คูปองหมดอายุแล้ว");
@@ -116,8 +178,8 @@ export default function CheckoutPage() {
       }
 
       setAppliedCoupon({
-        id: couponDoc.id,
         ...couponData,
+        id: couponDoc.id,
         validFrom,
         validUntil,
       });
@@ -159,6 +221,21 @@ export default function CheckoutPage() {
 
     try {
       setIsSubmitting(true);
+
+      // Save address to profile if requested
+      if (saveThisAddress && useNewAddress) {
+        const { doc: docRef, updateDoc: updateDocRef, arrayUnion: arrayUnionRef } = await import("firebase/firestore");
+        const userRef = docRef(firestore, "users", firebaseUser.uid);
+        const newAddress = {
+          id: Date.now().toString(),
+          label: "ที่อยู่ใหม่",
+          ...address,
+          isDefault: savedAddresses.length === 0
+        };
+        await updateDocRef(userRef, {
+          savedAddresses: arrayUnionRef(newAddress)
+        });
+      }
 
       await createOrder({
         buyerId: firebaseUser.uid,
@@ -215,97 +292,176 @@ export default function CheckoutPage() {
             <h2 className="text-2xl font-semibold text-emerald-800">ข้อมูลการจัดส่ง</h2>
             <p className="mt-1 text-sm text-slate-500">กรอกที่อยู่สำหรับการจัดส่งสินค้า</p>
 
-            <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium text-emerald-700">
-                  ชื่อ-นามสกุลผู้รับ
-                </label>
-                <input
-                  id="fullName"
-                  value={address.fullName}
-                  onChange={(event) => handleAddressChange("fullName", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
+            {/* Saved Addresses Selection */}
+            {savedAddresses.length > 0 && (
+              <div className="mt-6 space-y-3">
+                <h3 className="text-sm font-semibold text-emerald-700">เลือกที่อยู่ที่บันทึกไว้</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {savedAddresses.map((savedAddr) => (
+                    <button
+                      key={savedAddr.id}
+                      type="button"
+                      onClick={() => handleSelectAddress(savedAddr.id)}
+                      className={`relative w-full rounded-xl border-2 p-4 text-left transition ${
+                        selectedAddressId === savedAddr.id && !useNewAddress
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-slate-200 bg-white hover:border-emerald-300"
+                      }`}
+                    >
+                      {selectedAddressId === savedAddr.id && !useNewAddress && (
+                        <div className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500">
+                          <Check className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 pr-8">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-slate-900">{savedAddr.label}</p>
+                            {savedAddr.isDefault && (
+                              <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                หลัก
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-700 mt-1">{savedAddr.fullName} · {savedAddr.phone}</p>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {savedAddr.addressLine1}, {savedAddr.district}, {savedAddr.province} {savedAddr.postalCode}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNewAddress(true);
+                      setSelectedAddressId("");
+                    }}
+                    className={`w-full rounded-xl border-2 p-4 text-left transition ${
+                      useNewAddress
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-slate-200 bg-white hover:border-emerald-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-emerald-600" />
+                      <span className="font-semibold text-slate-900">ใช้ที่อยู่ใหม่</span>
+                    </div>
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium text-emerald-700">
-                  เบอร์โทรศัพท์
-                </label>
-                <input
-                  id="phone"
-                  value={address.phone}
-                  onChange={(event) => handleAddressChange("phone", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
-              </div>
+            <form className={`${savedAddresses.length > 0 ? 'mt-6' : 'mt-6'} grid grid-cols-1 gap-4 md:grid-cols-2`} onSubmit={handleSubmit}>
+              {/* Only show form if using new address or no saved addresses */}
+              {(useNewAddress || savedAddresses.length === 0) && (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="fullName" className="text-sm font-medium text-emerald-700">
+                      ชื่อ-นามสกุลผู้รับ
+                    </label>
+                    <input
+                      id="fullName"
+                      value={address.fullName}
+                      onChange={(event) => handleAddressChange("fullName", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
 
-              <div className="md:col-span-2 space-y-2">
-                <label htmlFor="addressLine1" className="text-sm font-medium text-emerald-700">
-                  ที่อยู่
-                </label>
-                <input
-                  id="addressLine1"
-                  value={address.addressLine1}
-                  onChange={(event) => handleAddressChange("addressLine1", event.target.value)}
-                  placeholder="บ้านเลขที่ หมู่ ถนน"
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <label htmlFor="phone" className="text-sm font-medium text-emerald-700">
+                      เบอร์โทรศัพท์
+                    </label>
+                    <input
+                      id="phone"
+                      value={address.phone}
+                      onChange={(event) => handleAddressChange("phone", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
 
-              <div className="md:col-span-2 space-y-2">
-                <label htmlFor="addressLine2" className="text-sm font-medium text-emerald-700">
-                  อำเภอ/เขต
-                </label>
-                <input
-                  id="addressLine2"
-                  value={address.addressLine2 ?? ""}
-                  onChange={(event) => handleAddressChange("addressLine2", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                />
-              </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label htmlFor="addressLine1" className="text-sm font-medium text-emerald-700">
+                      ที่อยู่
+                    </label>
+                    <input
+                      id="addressLine1"
+                      value={address.addressLine1}
+                      onChange={(event) => handleAddressChange("addressLine1", event.target.value)}
+                      placeholder="บ้านเลขที่ หมู่ ถนน"
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label htmlFor="district" className="text-sm font-medium text-emerald-700">
-                  ตำบล/แขวง
-                </label>
-                <input
-                  id="district"
-                  value={address.district}
-                  onChange={(event) => handleAddressChange("district", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
-              </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label htmlFor="addressLine2" className="text-sm font-medium text-emerald-700">
+                      อำเภอ/เขต
+                    </label>
+                    <input
+                      id="addressLine2"
+                      value={address.addressLine2 ?? ""}
+                      onChange={(event) => handleAddressChange("addressLine2", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label htmlFor="province" className="text-sm font-medium text-emerald-700">
-                  จังหวัด
-                </label>
-                <input
-                  id="province"
-                  value={address.province}
-                  onChange={(event) => handleAddressChange("province", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <label htmlFor="district" className="text-sm font-medium text-emerald-700">
+                      ตำบล/แขวง
+                    </label>
+                    <input
+                      id="district"
+                      value={address.district}
+                      onChange={(event) => handleAddressChange("district", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label htmlFor="postalCode" className="text-sm font-medium text-emerald-700">
-                  รหัสไปรษณีย์
-                </label>
-                <input
-                  id="postalCode"
-                  value={address.postalCode}
-                  onChange={(event) => handleAddressChange("postalCode", event.target.value)}
-                  className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <label htmlFor="province" className="text-sm font-medium text-emerald-700">
+                      จังหวัด
+                    </label>
+                    <input
+                      id="province"
+                      value={address.province}
+                      onChange={(event) => handleAddressChange("province", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="postalCode" className="text-sm font-medium text-emerald-700">
+                      รหัสไปรษณีย์
+                    </label>
+                    <input
+                      id="postalCode"
+                      value={address.postalCode}
+                      onChange={(event) => handleAddressChange("postalCode", event.target.value)}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                      required
+                    />
+                  </div>
+
+                  {/* Save Address Checkbox */}
+                  <div className="md:col-span-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={saveThisAddress}
+                        onChange={(e) => setSaveThisAddress(e.target.checked)}
+                        className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-slate-700">บันทึกที่อยู่นี้สำหรับการซื้อครั้งต่อไป</span>
+                    </label>
+                  </div>
+                </>
+              )}
 
               <div className="md:col-span-2 space-y-2">
                 <label htmlFor="note" className="text-sm font-medium text-emerald-700">

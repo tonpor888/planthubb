@@ -150,7 +150,7 @@ export default function AdminLayout({
           {navigation}
         </div>
       </aside>
-      <main className="px-6 pb-12 pt-[60px] lg:ml-64 lg:px-8 lg:pt-[68px]">
+      <main className="px-6 pb-12 pt-[30px] lg:ml-64 lg:px-8 lg:pt-[68px]">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex items-center justify-between lg:hidden">
             <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>

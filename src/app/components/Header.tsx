@@ -190,6 +190,13 @@ export function Header() {
                 {isMenuOpen && (
                   <div className="absolute right-0 md:right-auto md:left-0 mt-3 w-56 rounded-2xl border border-emerald-100 bg-white p-2 text-sm shadow-2xl z-[9999]">
                     <button
+                      onClick={() => goTo("/")}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <Sprout className="h-4 w-4" /> กลับหน้าแรก
+                    </button>
+                    <div className="my-2 h-px bg-emerald-100" />
+                    <button
                       onClick={() => goTo("/profile")}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
                     >
@@ -308,6 +315,13 @@ export function Header() {
                   </div>
 
                   <nav className="flex flex-col gap-2">
+                    <button
+                      onClick={() => goTo("/")}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <Sprout className="h-4 w-4" /> กลับหน้าแรก
+                    </button>
+                    <div className="h-px bg-emerald-100" />
                     <button
                       onClick={() => goTo("/profile")}
                       className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"

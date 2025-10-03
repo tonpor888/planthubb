@@ -13,11 +13,27 @@ import {
   Camera,
   Edit,
   Save,
-  X
+  X,
+  Plus,
+  Trash2,
+  Star
 } from "lucide-react";
 import { useAuthContext } from "../providers/AuthProvider";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseClient";
+
+interface SavedAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string;
+  district: string;
+  province: string;
+  postalCode: string;
+  isDefault: boolean;
+}
 
 export default function ProfilePage() {
   const { profile, firebaseUser } = useAuthContext();
@@ -30,6 +46,20 @@ export default function ProfilePage() {
     address: "",
   });
   const [loading, setLoading] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
+  const [addressForm, setAddressForm] = useState<Omit<SavedAddress, 'id'>>({
+    label: "",
+    fullName: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    district: "",
+    province: "",
+    postalCode: "",
+    isDefault: false
+  });
 
   useEffect(() => {
     if (profile) {
@@ -40,6 +70,7 @@ export default function ProfilePage() {
         address: profile.address || "",
       });
       setImageUrl(profile.profileImage || "");
+      setSavedAddresses((profile as any).savedAddresses || []);
     }
   }, [profile]);
 
@@ -58,6 +89,95 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Error updating profile:", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!firebaseUser) return;
+    
+    try {
+      setLoading(true);
+      const userRef = doc(firestore, "users", firebaseUser.uid);
+      
+      if (editingAddress) {
+        // Update existing address
+        const updatedAddresses = savedAddresses.map(addr => 
+          addr.id === editingAddress.id ? { ...addressForm, id: editingAddress.id } : addr
+        );
+        await updateDoc(userRef, { savedAddresses: updatedAddresses });
+        setSavedAddresses(updatedAddresses);
+      } else {
+        // Add new address
+        const newAddress = { ...addressForm, id: Date.now().toString() };
+        await updateDoc(userRef, { 
+          savedAddresses: arrayUnion(newAddress) 
+        });
+        setSavedAddresses([...savedAddresses, newAddress]);
+      }
+      
+      // Reset form
+      setAddressForm({
+        label: "",
+        fullName: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        district: "",
+        province: "",
+        postalCode: "",
+        isDefault: false
+      });
+      setShowAddressForm(false);
+      setEditingAddress(null);
+      alert("บันทึกที่อยู่สำเร็จ!");
+    } catch (error) {
+      console.error("Error saving address:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกที่อยู่");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!firebaseUser || !confirm("คุณต้องการลบที่อยู่นี้หรือไม่?")) return;
+    
+    try {
+      setLoading(true);
+      const userRef = doc(firestore, "users", firebaseUser.uid);
+      const addressToDelete = savedAddresses.find(addr => addr.id === addressId);
+      
+      await updateDoc(userRef, { 
+        savedAddresses: arrayRemove(addressToDelete) 
+      });
+      setSavedAddresses(savedAddresses.filter(addr => addr.id !== addressId));
+      alert("ลบที่อยู่สำเร็จ!");
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      alert("เกิดข้อผิดพลาดในการลบที่อยู่");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addressId: string) => {
+    if (!firebaseUser) return;
+    
+    try {
+      setLoading(true);
+      const userRef = doc(firestore, "users", firebaseUser.uid);
+      const updatedAddresses = savedAddresses.map(addr => ({
+        ...addr,
+        isDefault: addr.id === addressId
+      }));
+      
+      await updateDoc(userRef, { savedAddresses: updatedAddresses });
+      setSavedAddresses(updatedAddresses);
+      alert("ตั้งเป็นที่อยู่หลักสำเร็จ!");
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      alert("เกิดข้อผิดพลาดในการตั้งที่อยู่หลัก");
     } finally {
       setLoading(false);
     }
@@ -267,6 +387,184 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )}
+
+              {/* Saved Addresses Section */}
+              <div className="mt-8 pt-6 border-t-2 border-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">ที่อยู่ที่บันทึกไว้</h2>
+                  <button
+                    onClick={() => {
+                      setShowAddressForm(true);
+                      setEditingAddress(null);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                  >
+                    <Plus className="h-4 w-4" /> เพิ่มที่อยู่ใหม่
+                  </button>
+                </div>
+
+                {/* Address Form */}
+                {showAddressForm && (
+                  <div className="mb-4 p-6 rounded-xl bg-emerald-50 border-2 border-emerald-200">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                      {editingAddress ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        placeholder="ชื่อที่อยู่ (เช่น บ้าน, ที่ทำงาน)"
+                        value={addressForm.label}
+                        onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ชื่อ-นามสกุล ผู้รับ"
+                        value={addressForm.fullName}
+                        onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="เบอร์โทรศัพท์"
+                        value={addressForm.phone}
+                        onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="รหัสไปรษณีย์"
+                        value={addressForm.postalCode}
+                        onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ที่อยู่บรรทัดที่ 1"
+                        value={addressForm.addressLine1}
+                        onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })}
+                        className="md:col-span-2 rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ที่อยู่บรรทัดที่ 2 (ถ้ามี)"
+                        value={addressForm.addressLine2}
+                        onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
+                        className="md:col-span-2 rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="เขต/อำเภอ"
+                        value={addressForm.district}
+                        onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <input
+                        type="text"
+                        placeholder="จังหวัด"
+                        value={addressForm.province}
+                        onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })}
+                        className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <button
+                        onClick={handleSaveAddress}
+                        disabled={loading}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        <Save className="h-4 w-4" /> บันทึก
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddressForm(false);
+                          setEditingAddress(null);
+                          setAddressForm({
+                            label: "",
+                            fullName: "",
+                            phone: "",
+                            addressLine1: "",
+                            addressLine2: "",
+                            district: "",
+                            province: "",
+                            postalCode: "",
+                            isDefault: false
+                          });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <X className="h-4 w-4" /> ยกเลิก
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Address List */}
+                <div className="space-y-3">
+                  {savedAddresses.length === 0 ? (
+                    <p className="text-center text-slate-500 py-8">ยังไม่มีที่อยู่ที่บันทึกไว้</p>
+                  ) : (
+                    savedAddresses.map((address) => (
+                      <div
+                        key={address.id}
+                        className={`p-4 rounded-xl border-2 ${
+                          address.isDefault
+                            ? "border-emerald-500 bg-emerald-50"
+                            : "border-slate-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-slate-900">{address.label}</h3>
+                              {address.isDefault && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                  <Star className="h-3 w-3 fill-current" /> ที่อยู่หลัก
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-700 font-medium">{address.fullName}</p>
+                            <p className="text-sm text-slate-600">{address.phone}</p>
+                            <p className="text-sm text-slate-600 mt-1">
+                              {address.addressLine1}
+                              {address.addressLine2 && `, ${address.addressLine2}`}
+                            </p>
+                            <p className="text-sm text-slate-600">
+                              {address.district}, {address.province} {address.postalCode}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 ml-4">
+                            {!address.isDefault && (
+                              <button
+                                onClick={() => handleSetDefaultAddress(address.id)}
+                                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                              >
+                                ตั้งเป็นหลัก
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setEditingAddress(address);
+                                setAddressForm(address);
+                                setShowAddressForm(true);
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              แก้ไข
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAddress(address.id)}
+                              className="text-xs text-rose-600 hover:text-rose-700 font-medium"
+                            >
+                              ลบ
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
               {/* Shop Link for Sellers/Admins */}
               {(profile.role === "seller" || profile.role === "admin") && (
