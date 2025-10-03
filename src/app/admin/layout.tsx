@@ -1,10 +1,20 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useAuthContext } from "../providers/AuthProvider";
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  Clock,
+  Settings,
+  FileText,
+} from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -13,8 +23,29 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const { profile, firebaseUser } = useAuthContext();
+  const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const navItems = useMemo(
+    () => [
+      { href: "/admin/dashboard", label: "แดชบอร์ด", icon: LayoutDashboard },
+      { href: "/admin/users", label: "จัดการผู้ใช้", icon: Users },
+      { href: "/admin/products", label: "จัดการสินค้า", icon: Package },
+      { href: "/admin/orders", label: "จัดการออเดอร์", icon: ShoppingCart },
+      { href: "/admin/top-products", label: "สินค้าขายดี", icon: TrendingUp },
+      { href: "/admin/pending-orders", label: "ออเดอร์รอดำเนินการ", icon: Clock },
+      { href: "/admin/settings", label: "การตั้งค่าระบบ", icon: Settings },
+      { href: "/admin/logs", label: "บันทึกระบบ", icon: FileText },
+    ],
+    []
+  );
+
+  const isPathActive = (href: string) => {
+    if (!pathname) return false;
+    if (pathname === href) return true;
+    return pathname.startsWith(`${href}/`);
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -84,63 +115,28 @@ export default function AdminLayout({
       </div>
 
       <nav className="space-y-2">
-        <Link href="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
-          </svg>
-          <span className="font-medium">Dashboard</span>
-        </Link>
-
-        <Link href="/admin/users" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-          </svg>
-          <span className="font-medium">User Management</span>
-        </Link>
-
-        <Link href="/admin/products" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          <span className="font-medium">Product Management</span>
-        </Link>
-
-        <Link href="/admin/orders" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <span className="font-medium">Order Management</span>
-        </Link>
-
-        <Link href="/admin/top-products" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-          <span className="font-medium">Top Products</span>
-        </Link>
-
-        <Link href="/admin/pending-orders" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="font-medium">Pending Orders</span>
-        </Link>
-
-        <Link href="/admin/settings" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="font-medium">System Settings</span>
-        </Link>
-
-        <Link href="/admin/logs" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition group">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span className="font-medium">System Logs</span>
-        </Link>
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const active = isPathActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setIsNavOpen(false)}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition shadow-sm ${
+                active
+                  ? "bg-emerald-100 text-emerald-700 shadow-inner"
+                  : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-600"
+              }`}
+            >
+              <Icon
+                className={`h-5 w-5 transition ${
+                  active ? "text-emerald-600" : "text-slate-400"
+                }`}
+              />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );
@@ -148,14 +144,14 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
       <aside
-        className="hidden lg:flex lg:flex-col fixed left-0 top-[120px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
-        style={{ height: "calc(100vh - 120px)" }}
+        className="hidden lg:flex lg:flex-col fixed left-0 top-[110px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
+        style={{ height: "calc(100vh - 110px)" }}
       >
         <div className="p-6">
           {navigation}
         </div>
       </aside>
-      <main className="px-6 pb-12 pt-[140px] lg:ml-64 lg:px-8">
+      <main className="px-6 pb-12 pt-[120px] lg:ml-64 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex items-center justify-between lg:hidden">
             <h1 className="text-lg font-semibold text-slate-800">แผงควบคุมผู้ดูแล</h1>

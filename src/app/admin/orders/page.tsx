@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { useAuthContext } from "../../providers/AuthProvider";
-import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseClient";
 
 type Order = {
@@ -109,6 +109,17 @@ export default function AdminOrdersPage() {
       } catch (error) {
         console.error("Error updating order status:", error);
         alert("ไม่สามารถเปลี่ยนสถานะออเดอร์ได้");
+      }
+    }
+  };
+
+  const handleDelete = async (orderId: string) => {
+    if (confirm("ต้องการลบออเดอร์นี้ออกจากระบบหรือไม่?")) {
+      try {
+        await deleteDoc(doc(firestore, "orders", orderId));
+      } catch (error) {
+        console.error("Error deleting order:", error);
+        alert("ไม่สามารถลบออเดอร์ได้");
       }
     }
   };
@@ -291,6 +302,13 @@ export default function AdminOrdersPage() {
                       <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition">
                         <Eye className="h-4 w-4" />
                         ดูรายละเอียด
+                      </button>
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        ลบออเดอร์นี้
                       </button>
                     </div>
                   </div>
