@@ -42,7 +42,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
       <aside
-        className="fixed left-0 top-[120px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
+        className="hidden lg:flex lg:flex-col fixed left-0 top-[120px] w-64 bg-white shadow-xl border-r border-emerald-100 overflow-y-auto"
         style={{ height: "calc(100vh - 120px)" }}
       >
         <div className="p-6">
@@ -128,7 +128,7 @@ export default function AdminLayout({
           </nav>
         </div>
       </aside>
-      <main className="ml-64 px-8 pb-12 pt-[140px]">
+      <main className="px-6 pb-12 pt-[140px] lg:ml-64 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
