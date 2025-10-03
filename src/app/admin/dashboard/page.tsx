@@ -34,6 +34,27 @@ type DashboardStats = {
   salesToday: number;
 };
 
+const formatCurrency = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return "฿0";
+  }
+
+  const absValue = Math.abs(value);
+
+  if (absValue >= 1000) {
+    const compact = new Intl.NumberFormat("th-TH", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+    return `฿${compact}`;
+  }
+
+  return `฿${new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: absValue % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value)}`;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { profile, signOut } = useAuthContext();
@@ -208,8 +229,8 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500 mb-1">ยอดขายรวม</p>
-              <p className="text-3xl font-bold text-slate-800">฿{stats.totalSales.toLocaleString()}</p>
-              <p className="text-xs text-emerald-600 mt-1">฿{stats.salesToday.toLocaleString()} วันนี้</p>
+              <p className="text-3xl font-bold text-slate-800 break-words">{formatCurrency(stats.totalSales)}</p>
+              <p className="text-xs text-emerald-600 mt-1 break-words">{formatCurrency(stats.salesToday)} วันนี้</p>
             </div>
             <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100">
               <DollarSign className="h-8 w-8 text-orange-600" />
