@@ -1,6 +1,8 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  FacebookAuthProvider,
   sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
@@ -122,6 +124,73 @@ export async function signInUser(email: string, password: string) {
   );
   
   return credential.user;
+}
+
+export async function signInWithFacebook() {
+  const provider = new FacebookAuthProvider();
+  provider.addScope('email');
+  provider.addScope('public_profile');
+  
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // ตรวจสอบว่ามี profile ใน Firestore หรือยัง
+    const profileRef = doc(firestore, USERS_COLLECTION, user.uid);
+    const profileSnap = await getDoc(profileRef);
+
+    if (!profileSnap.exists()) {
+      // สร้าง profile ใหม่สำหรับผู้ใช้ Facebook
+      const nameParts = (user.displayName || '').split(' ');
+      const firstName = nameParts[0] || 'ผู้ใช้';
+      const lastName = nameParts.slice(1).join(' ') || 'Facebook';
+
+      await setDoc(profileRef, {
+        uid: user.uid,
+        email: user.email,
+        firstName,
+        lastName,
+        role: "customer",
+        profileImage: user.photoURL,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        emailVerified: true, // Facebook accounts are pre-verified
+        provider: 'facebook',
+      });
+
+      // สร้าง log สำหรับการสมัครผ่าน Facebook
+      await createLog(
+        user.uid,
+        user.email || "",
+        user.displayName || "ผู้ใช้ Facebook",
+        "REGISTER",
+        `ผู้ใช้สมัครสมาชิกผ่าน Facebook: ${user.email}`,
+        { provider: 'facebook' }
+      );
+    } else {
+      // สร้าง log สำหรับการเข้าสู่ระบบผ่าน Facebook
+      await createLog(
+        user.uid,
+        user.email || "",
+        user.displayName || "ผู้ใช้ Facebook",
+        "LOGIN",
+        "ผู้ใช้เข้าสู่ระบบผ่าน Facebook",
+        { provider: 'facebook' }
+      );
+    }
+
+    return user;
+  } catch (error: any) {
+    // Handle specific Facebook errors
+    if (error.code === 'auth/account-exists-with-different-credential') {
+      throw new Error('มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว กรุณาเข้าสู่ระบบด้วยวิธีเดิม');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error('ยกเลิกการเข้าสู่ระบบ');
+    } else if (error.code === 'auth/popup-blocked') {
+      throw new Error('เบราว์เซอร์บล็อกหน้าต่างป๊อปอัพ กรุณาอนุญาตและลองใหม่อีกครั้ง');
+    }
+    throw error;
+  }
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {

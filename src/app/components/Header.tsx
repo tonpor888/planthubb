@@ -27,11 +27,27 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const originalOverflowRef = useRef<string | null>(null);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      // Save original overflow style
+      const originalOverflow = document.body.style.overflow;
+      // Disable scrolling
+      document.body.style.overflow = 'hidden';
+      
+      // Cleanup: restore original overflow when menu closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,23 +98,6 @@ export function Header() {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
-
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      if (originalOverflowRef.current === null) {
-        originalOverflowRef.current = document.body.style.overflow;
-      }
-      document.body.style.overflow = "hidden";
-    } else if (originalOverflowRef.current !== null) {
-      document.body.style.overflow = originalOverflowRef.current;
-    }
-
-    return () => {
-      if (originalOverflowRef.current !== null) {
-        document.body.style.overflow = originalOverflowRef.current;
-      }
-    };
-  }, [isMobileMenuOpen]);
 
   const goTo = (path: string) => {
     setIsMenuOpen(false);

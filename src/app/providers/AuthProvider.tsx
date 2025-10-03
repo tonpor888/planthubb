@@ -14,6 +14,7 @@ import { type User } from "firebase/auth";
 import {
   signUpUser,
   signInUser,
+  signInWithFacebook,
   signOutUser,
   resendVerificationEmail,
   cancelAccount,
@@ -31,6 +32,7 @@ interface AuthContextValue {
   initializing: boolean;
   signUp: (payload: SignUpPayload) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
+  signInFacebook: () => Promise<User>;
   signOut: () => Promise<void>;
   reloadUser: () => Promise<User | null>;
   resendVerification: () => Promise<void>;
@@ -101,6 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user;
   }, [hydrateProfile]);
 
+  const signInFacebook = useCallback(async () => {
+    const user = await signInWithFacebook();
+    setFirebaseUser(user);
+    await hydrateProfile(user);
+    return user;
+  }, [hydrateProfile]);
+
   const signOut = useCallback(async () => {
     await signOutUser();
     setFirebaseUser(null);
@@ -144,11 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializing,
     signUp,
     signIn,
+    signInFacebook,
     signOut,
     reloadUser,
     resendVerification,
     cancelRegistration,
-  }), [firebaseUser, profile, initializing, signUp, signIn, signOut, reloadUser, resendVerification, cancelRegistration]);
+  }), [firebaseUser, profile, initializing, signUp, signIn, signInFacebook, signOut, reloadUser, resendVerification, cancelRegistration]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
