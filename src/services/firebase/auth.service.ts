@@ -128,7 +128,8 @@ export async function signInUser(email: string, password: string) {
 
 export async function signInWithFacebook() {
   const provider = new FacebookAuthProvider();
-  provider.addScope('email');
+  // Note: 'email' scope requires App Review from Facebook
+  // For Development Mode, only 'public_profile' works without review
   provider.addScope('public_profile');
   
   try {
@@ -145,9 +146,12 @@ export async function signInWithFacebook() {
       const firstName = nameParts[0] || 'ผู้ใช้';
       const lastName = nameParts.slice(1).join(' ') || 'Facebook';
 
+      // ใช้ email จาก Facebook หรือสร้าง email จาก uid ถ้าไม่มี
+      const userEmail = user.email || `facebook_${user.uid}@planthub.local`;
+
       await setDoc(profileRef, {
         uid: user.uid,
-        email: user.email,
+        email: userEmail,
         firstName,
         lastName,
         role: "customer",
@@ -156,26 +160,27 @@ export async function signInWithFacebook() {
         updatedAt: serverTimestamp(),
         emailVerified: true, // Facebook accounts are pre-verified
         provider: 'facebook',
+        facebookId: user.providerData[0]?.uid, // เก็บ Facebook User ID
       });
 
       // สร้าง log สำหรับการสมัครผ่าน Facebook
       await createLog(
         user.uid,
-        user.email || "",
+        userEmail,
         user.displayName || "ผู้ใช้ Facebook",
         "REGISTER",
-        `ผู้ใช้สมัครสมาชิกผ่าน Facebook: ${user.email}`,
-        { provider: 'facebook' }
+        `ผู้ใช้สมัครสมาชิกผ่าน Facebook: ${user.displayName || user.uid}`,
+        { provider: 'facebook', facebookId: user.providerData[0]?.uid }
       );
     } else {
       // สร้าง log สำหรับการเข้าสู่ระบบผ่าน Facebook
       await createLog(
         user.uid,
-        user.email || "",
+        user.email || `facebook_${user.uid}@planthub.local`,
         user.displayName || "ผู้ใช้ Facebook",
         "LOGIN",
         "ผู้ใช้เข้าสู่ระบบผ่าน Facebook",
-        { provider: 'facebook' }
+        { provider: 'facebook', facebookId: user.providerData[0]?.uid }
       );
     }
 
