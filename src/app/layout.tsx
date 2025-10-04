@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "สวน",
     "ปลูกต้นไม้",
   ],
+  other: {
+    "preload": "true",
+  },
   openGraph: {
     title: "PlantHub | ศูนย์รวมต้นไม้และดอกไม้",
     description:
@@ -123,9 +126,10 @@ export default function RootLayout({
               document.head.appendChild(fontLink);
               
               // Optimize font loading
-              if ('fonts' in document) {
+              if ('fonts' in document && typeof window !== 'undefined') {
                 document.fonts.ready.then(() => {
-                  document.documentElement.classList.add('fonts-loaded');
+                  // Fonts are loaded, but don't modify DOM to avoid hydration mismatch
+                  console.log('Fonts loaded successfully');
                 });
               }
             `,

@@ -17,6 +17,8 @@ export async function fetchOrdersForUser(userId: string) {
       paymentMethod_th: paymentMethodToThai(data.paymentMethod as string),
       total: data.total as number,
       updatedAt: data.updatedAt?.toDate?.() ?? null,
+      items: data.items || [],
+      sellerId: data.sellerId || '',
     };
   });
 }

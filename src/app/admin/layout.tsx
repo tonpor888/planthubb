@@ -14,6 +14,7 @@ import {
   Clock,
   Settings,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -33,6 +34,8 @@ export default function AdminLayout({
       { href: "/admin/users", label: "จัดการผู้ใช้", icon: Users },
       { href: "/admin/products", label: "จัดการสินค้า", icon: Package },
       { href: "/admin/orders", label: "จัดการออเดอร์", icon: ShoppingCart },
+      { href: "/admin/chat", label: "แชทสนับสนุน", icon: MessageCircle },
+      { href: "/admin/seller-chat", label: "แชทร้านค้า", icon: MessageCircle },
       { href: "/admin/top-products", label: "สินค้าขายดี", icon: TrendingUp },
       { href: "/admin/pending-orders", label: "ออเดอร์รอดำเนินการ", icon: Clock },
       { href: "/admin/settings", label: "การตั้งค่าระบบ", icon: Settings },

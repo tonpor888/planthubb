@@ -3,6 +3,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   FacebookAuthProvider,
+  GoogleAuthProvider,
   sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
@@ -12,7 +13,7 @@ import {
   getAuth,
   type User,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 
 import { auth, firestore, firebaseApp } from "../../lib/firebaseClient";
 import { isHardcodedAdmin, getHardcodedAdmin } from "../../lib/adminConfig";
@@ -25,13 +26,17 @@ export interface UserProfile {
   email: string;
   firstName: string;
   lastName: string;
-  role: AppUserRole;
+  role?: AppUserRole;
   createdAt: Date;
   updatedAt: Date;
   emailVerified: boolean;
   phone?: string;
   address?: string;
   profileImage?: string;
+  isProfileComplete?: boolean;
+  needsRoleSelection?: boolean;
+  isNewUser?: boolean;
+  storeName?: string;
 }
 
 export interface SignUpPayload {
@@ -78,7 +83,10 @@ export async function signUpUser(input: SignUpPayload) {
     displayName,
     "REGISTER",
     `ผู้ใช้สมัครสมาชิกใหม่: ${user.email} (${input.role ?? "customer"})`,
-    { role: input.role ?? "customer", storeName: input.storeName }
+    { 
+      role: input.role ?? "customer", 
+      storeName: input.storeName || null 
+    }
   );
 
   return user;
@@ -198,6 +206,80 @@ export async function signInWithFacebook() {
   }
 }
 
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  // เพิ่ม scope สำหรับ email และ profile
+  provider.addScope('email');
+  provider.addScope('profile');
+  
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // ตรวจสอบว่ามี profile ใน Firestore หรือยัง
+    const profileRef = doc(firestore, USERS_COLLECTION, user.uid);
+    const profileSnap = await getDoc(profileRef);
+
+    if (!profileSnap.exists()) {
+      // สร้าง profile ใหม่สำหรับผู้ใช้ Google (ผู้ใช้ใหม่)
+      const nameParts = (user.displayName || '').split(' ');
+      const firstName = nameParts[0] || 'ผู้ใช้';
+      const lastName = nameParts.slice(1).join(' ') || 'Google';
+
+      // ใช้ email จาก Google (Google จะมี email เสมอ)
+      const userEmail = user.email || `google_${user.uid}@planthub.local`;
+
+      await setDoc(profileRef, {
+        uid: user.uid,
+        email: userEmail,
+        firstName,
+        lastName,
+        role: "customer", // ตั้งค่าเริ่มต้นเป็น customer
+        profileImage: user.photoURL,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        emailVerified: true, // Google accounts are pre-verified
+        provider: 'google',
+        googleId: user.providerData[0]?.uid, // เก็บ Google User ID
+        isNewUser: true, // ระบุว่าเป็นผู้ใช้ใหม่
+        needsRoleSelection: true, // ต้องเลือกประเภทผู้ใช้
+      });
+
+      // สร้าง log สำหรับการสมัครผ่าน Google
+      await createLog(
+        user.uid,
+        userEmail,
+        user.displayName || "ผู้ใช้ Google",
+        "REGISTER",
+        `ผู้ใช้สมัครสมาชิกผ่าน Google: ${user.displayName || user.uid}`,
+        { provider: 'google', googleId: user.providerData[0]?.uid, isNewUser: true }
+      );
+    } else {
+      // สร้าง log สำหรับการเข้าสู่ระบบผ่าน Google
+      await createLog(
+        user.uid,
+        user.email || `google_${user.uid}@planthub.local`,
+        user.displayName || "ผู้ใช้ Google",
+        "LOGIN",
+        "ผู้ใช้เข้าสู่ระบบผ่าน Google",
+        { provider: 'google', googleId: user.providerData[0]?.uid }
+      );
+    }
+
+    return user;
+  } catch (error: any) {
+    // Handle specific Google errors
+    if (error.code === 'auth/account-exists-with-different-credential') {
+      throw new Error('มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว กรุณาเข้าสู่ระบบด้วยวิธีเดิม');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error('ยกเลิกการเข้าสู่ระบบ');
+    } else if (error.code === 'auth/popup-blocked') {
+      throw new Error('เบราว์เซอร์บล็อกหน้าต่างป๊อปอัพ กรุณาอนุญาตและลองใหม่อีกครั้ง');
+    }
+    throw error;
+  }
+}
+
 export function onAuthChange(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
 }
@@ -300,3 +382,37 @@ export const createUserByAdmin = async (
   }
 };
 
+// Email verification functions
+export async function sendEmailVerificationToUser(): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error("No user logged in");
+  }
+
+  if (auth.currentUser.emailVerified) {
+    throw new Error("Email already verified");
+  }
+
+  await sendEmailVerification(auth.currentUser);
+}
+
+export async function cancelRegistration(): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error("No user logged in");
+  }
+
+  const uid = auth.currentUser.uid;
+  
+  try {
+    // Delete user profile from Firestore
+    await deleteDoc(doc(firestore, USERS_COLLECTION, uid));
+    
+    // Delete user from Firebase Auth
+    await deleteUser(auth.currentUser);
+    
+    // Sign out the user
+    await signOut(auth);
+  } catch (error) {
+    console.error('Error canceling registration:', error);
+    throw new Error('เกิดข้อผิดพลาดในการยกเลิกการสมัครสมาชิก');
+  }
+}

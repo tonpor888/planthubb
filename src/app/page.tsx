@@ -40,6 +40,7 @@ export default function Home() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high" | "views">("newest");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -55,14 +56,44 @@ export default function Home() {
 
   useEffect(() => {
     const productsRef = ref(realtimeDb, "products");
+    
+    // Set timeout to show error if loading takes too long
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setError("การโหลดข้อมูลใช้เวลานาน กรุณาลองใหม่อีกครั้ง");
+        setIsLoading(false);
+      }
+    }, 5000); // Reduced to 5 seconds timeout
+    
     const unsubscribe = onValue(productsRef, (snapshot) => {
-      const value = snapshot.val() ?? {};
-      setProducts(value);
+      try {
+        const value = snapshot.val() ?? {};
+        
+        // Limit products to first 20 for better performance
+        const limitedProducts = Object.fromEntries(
+          Object.entries(value).slice(0, 20)
+        );
+        
+        setProducts(limitedProducts as Record<string, Product>);
+        setIsLoading(false);
+        setError(null);
+        clearTimeout(timeoutId);
+      } catch (err) {
+        setError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+        setIsLoading(false);
+        clearTimeout(timeoutId);
+      }
+    }, (error) => {
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
       setIsLoading(false);
+      clearTimeout(timeoutId);
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, [isLoading]);
 
   const filteredProducts = useMemo(() => {
     const normalized = debouncedQuery.trim().toLowerCase();
@@ -112,6 +143,15 @@ export default function Home() {
 
   return (
     <>
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className="h-1 bg-emerald-200">
+            <div className="h-1 bg-emerald-600 animate-pulse"></div>
+          </div>
+        </div>
+      )}
+      
     <section id="featured" className="mx-auto w-full max-w-6xl px-4 py-16">
           <div className="mb-10">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
@@ -190,7 +230,27 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {isLoading ? (
+              {error ? (
+                // Error state
+                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                  <div className="mb-4 rounded-full bg-red-100 p-3">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">เกิดข้อผิดพลาด</h3>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      setIsLoading(true);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    ลองใหม่
+                  </button>
+                </div>
+              ) : isLoading ? (
                 // Skeleton loading cards
                 Array.from({ length: 6 }).map((_, index) => (
                   <div
@@ -210,6 +270,19 @@ export default function Home() {
                     </div>
                   </div>
                 ))
+              ) : filteredProducts.length === 0 ? (
+                // No products found
+                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                  <div className="mb-4 rounded-full bg-gray-100 p-3">
+                    <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">ไม่พบสินค้า</h3>
+                  <p className="text-gray-600">
+                    {debouncedQuery ? 'ไม่พบสินค้าที่ตรงกับการค้นหา' : 'ยังไม่มีสินค้าในระบบ'}
+                  </p>
+                </div>
               ) : (
                 filteredProducts.map((product) => (
                 <Link
@@ -224,10 +297,12 @@ export default function Home() {
                         alt={product.name}
                         width={400}
                         height={240}
-                        loading="lazy"
+                        loading={filteredProducts.indexOf(product) < 3 ? "eager" : "lazy"}
+                        priority={filteredProducts.indexOf(product) === 0}
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         unoptimized={true}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        placeholder="blur"
+                        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-slate-100">

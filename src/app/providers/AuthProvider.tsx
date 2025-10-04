@@ -10,17 +10,20 @@ import {
   type ReactNode,
 } from "react";
 import { type User } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 import {
   signUpUser,
   signInUser,
-  signInWithFacebook,
+  signInWithGoogle,
   signOutUser,
   resendVerificationEmail,
   cancelAccount,
   fetchUserProfile,
   updateEmailVerificationFlag,
   onAuthChange,
+  sendEmailVerificationToUser,
+  cancelRegistration,
   type SignUpPayload,
   type UserProfile,
 } from "../../services/firebase/auth.service";
@@ -32,16 +35,19 @@ interface AuthContextValue {
   initializing: boolean;
   signUp: (payload: SignUpPayload) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
-  signInFacebook: () => Promise<User>;
+  signInGoogle: () => Promise<User>;
   signOut: () => Promise<void>;
   reloadUser: () => Promise<User | null>;
   resendVerification: () => Promise<void>;
   cancelRegistration: () => Promise<void>;
+  sendEmailVerification: () => Promise<void>;
+  cancelRegistrationNew: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [initializing, setInitializing] = useState(true);
@@ -89,22 +95,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, [hydrateProfile]);
 
-  const signUp = useCallback(async (payload: SignUpPayload) => {
+  const signUp = useCallback(async (payload: SignUpPayload): Promise<User> => {
     const user = await signUpUser(payload);
     setFirebaseUser(user);
     await hydrateProfile(user);
     return user;
   }, [hydrateProfile]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<User> => {
     const user = await signInUser(email, password);
     setFirebaseUser(user);
     await hydrateProfile(user);
     return user;
   }, [hydrateProfile]);
 
-  const signInFacebook = useCallback(async () => {
-    const user = await signInWithFacebook();
+  const signInGoogle = useCallback(async (): Promise<User> => {
+    const user = await signInWithGoogle();
     setFirebaseUser(user);
     await hydrateProfile(user);
     return user;
@@ -147,18 +153,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, []);
 
+  const sendEmailVerification = useCallback(async (): Promise<void> => {
+    await sendEmailVerificationToUser();
+  }, []);
+
+  const cancelRegistrationNew = useCallback(async (): Promise<void> => {
+    await cancelRegistration();
+    setFirebaseUser(null);
+    setProfile(null);
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     firebaseUser,
     profile,
     initializing,
     signUp,
     signIn,
-    signInFacebook,
+    signInGoogle,
     signOut,
     reloadUser,
     resendVerification,
     cancelRegistration,
-  }), [firebaseUser, profile, initializing, signUp, signIn, signInFacebook, signOut, reloadUser, resendVerification, cancelRegistration]);
+    sendEmailVerification,
+    cancelRegistrationNew,
+  }), [firebaseUser, profile, initializing, signUp, signIn, signInGoogle, signOut, reloadUser, resendVerification, cancelRegistration, sendEmailVerification, cancelRegistrationNew]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

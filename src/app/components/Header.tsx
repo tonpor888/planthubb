@@ -16,10 +16,13 @@ import {
   LogOut,
   Shield,
   User,
+  MessageCircle,
 } from "lucide-react";
 import Image from "next/image";
 
 import { useAuthContext } from "../providers/AuthProvider";
+import FloatingChatButton from "./FloatingChatButton";
+import ChatSupport from "./ChatSupport";
 
 export function Header() {
   const router = useRouter();
@@ -27,6 +30,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   useEffect(() => {
     setIsMounted(true);
@@ -207,12 +211,26 @@ export function Header() {
                     >
                       <Package className="h-4 w-4" /> คำสั่งซื้อของฉัน
                     </button>
+                    <button
+                      onClick={() => setIsChatOpen(true)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
+                    </button>
                     {(profile.role === "seller" || profile.role === "admin") && (
                       <button
                         onClick={() => goTo("/my-shop")}
                         className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         <Store className="h-4 w-4" /> ร้านของฉัน
+                      </button>
+                    )}
+                    {(profile.role === "seller" || profile.role === "admin") && (
+                      <button
+                        onClick={() => setIsChatOpen(true)}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
                       </button>
                     )}
                     {profile.role === "admin" && (
@@ -242,7 +260,7 @@ export function Header() {
                   href="/register"
                   className="inline-flex items-center gap-2 rounded-full border-2 border-white px-6 py-3 text-base font-medium text-white transition hover:bg-white hover:text-emerald-600 shadow-lg"
                 >
-                  <Store className="h-5 w-5" /> สมัครสมาชิกร้านค้า
+                  <Store className="h-5 w-5" /> สมัครร้านค้า
                 </Link>
                 <Link
                   href="/login"
@@ -333,12 +351,32 @@ export function Header() {
                     >
                       <Package className="h-4 w-4" /> คำสั่งซื้อของฉัน
                     </button>
+                    <button
+                      onClick={() => {
+                        setIsChatOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
+                    </button>
                     {(profile.role === "seller" || profile.role === "admin") && (
                       <button
                         onClick={() => goTo("/my-shop")}
                         className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         <Store className="h-4 w-4" /> ร้านของฉัน
+                      </button>
+                    )}
+                    {(profile.role === "seller" || profile.role === "admin") && (
+                      <button
+                        onClick={() => {
+                          setIsChatOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
                       </button>
                     )}
                     {profile.role === "admin" && (
@@ -376,7 +414,7 @@ export function Header() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-3 text-base font-medium text-emerald-600 shadow transition hover:bg-emerald-50"
                   >
-                    <Store className="h-4 w-4" /> สมัครสมาชิกร้านค้า
+                    <Store className="h-4 w-4" /> สมัครร้านค้า
                   </Link>
                 </div>
               )}
@@ -409,6 +447,15 @@ export function Header() {
         </>,
         document.body
       )}
+      
+      {/* Floating Chat Button */}
+      <FloatingChatButton onClick={() => setIsChatOpen(true)} />
+      
+      {/* Chat Support Component */}
+      <ChatSupport 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+      />
     </>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Plus, Eye, EyeOff, Edit3, Trash2, ArrowLeft, BarChart3, Package, Tag, TrendingUp, X, Save, Search } from "lucide-react";
+import { Plus, Eye, EyeOff, Edit3, Trash2, ArrowLeft, BarChart3, Package, Tag, TrendingUp, X, Save, Search, MessageCircle } from "lucide-react";
 import { onValue, ref, remove, update } from "firebase/database";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
@@ -332,6 +332,19 @@ export default function MyShopPage() {
             <div>
               <h3 className="font-semibold text-orange-800">กราฟยอดขาย</h3>
               <p className="text-sm text-slate-500">ดูกราฟยอดขายและสินค้าขายดี</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/my-shop/chat"
+            className="flex items-center gap-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg transition hover:shadow-xl"
+          >
+            <div className="rounded-full bg-green-100 p-3">
+              <MessageCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-green-800">แชทร้านค้า</h3>
+              <p className="text-sm text-slate-500">ตอบกลับลูกค้าและจัดการแชท</p>
             </div>
           </Link>
         </div>

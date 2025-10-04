@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Package, Truck, BadgeDollarSign, FileDown, Undo2, Loader2, CalendarCheck, DollarSign, PackageCheck, ArrowLeft, Search } from "lucide-react";
+import { ArrowRight, Package, Truck, BadgeDollarSign, FileDown, Undo2, Loader2, CalendarCheck, DollarSign, PackageCheck, ArrowLeft, Search, MessageCircle } from "lucide-react";
 
 import { useAuthContext } from "../providers/AuthProvider";
 import { fetchOrdersForUser } from "../../services/firebase/ordersQuery.service";
+import SellerChatWindow from "../components/SellerChatWindow";
 
 type OrderSummary = Awaited<ReturnType<typeof fetchOrdersForUser>>[number];
 
@@ -15,6 +16,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOrderForChat, setSelectedOrderForChat] = useState<OrderSummary | null>(null);
 
   useEffect(() => {
     if (!firebaseUser) {
@@ -53,7 +55,7 @@ export default function OrdersPage() {
     return orders.filter(order => 
       order.status.toLowerCase().includes(query) ||
       order.paymentMethod.toLowerCase().includes(query) ||
-      order.items.some(item => item.name.toLowerCase().includes(query)) ||
+      order.items.some((item: any) => item.name.toLowerCase().includes(query)) ||
       order.id.toLowerCase().includes(query) ||
       order.total.toString().includes(query)
     );
@@ -183,6 +185,13 @@ export default function OrdersPage() {
                     </button>
                     <button
                       type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-blue-500 px-5 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
+                      onClick={() => setSelectedOrderForChat(order)}
+                    >
+                      <MessageCircle className="h-4 w-4" /> ติดต่อร้านค้า
+                    </button>
+                    <button
+                      type="button"
                     className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 transition hover:text-emerald-700"
                     >
                     <Undo2 className="h-4 w-4" /> ขอคืนสินค้า / ขอเงินคืน
@@ -194,6 +203,12 @@ export default function OrdersPage() {
           )}
         </div>
       </div>
+      
+      {/* Seller Chat Window */}
+      <SellerChatWindow 
+        order={selectedOrderForChat} 
+        onClose={() => setSelectedOrderForChat(null)} 
+      />
     </div>
   );
 }
