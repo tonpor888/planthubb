@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState, useEffect } from "react";
+import { FormEvent, useMemo, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
@@ -10,7 +10,7 @@ import { useAuthContext } from "../providers/AuthProvider";
 
 type UserType = "buyer" | "seller" | "both";
 
-export default function RegisterContent() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signUp } = useAuthContext();
@@ -287,6 +287,21 @@ export default function RegisterContent() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterContent() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }
 
