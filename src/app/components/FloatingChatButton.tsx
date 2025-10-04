@@ -10,9 +10,10 @@ export default function FloatingChatButton({ onClick }: FloatingChatButtonProps)
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-24 right-6 z-40 bg-gradient-to-r from-emerald-500 to-lime-400 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+      className="fixed bottom-8 right-28 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-2xl shadow-blue-500/40 transition-all duration-300 hover:scale-110 hover:shadow-blue-500/60"
+      aria-label="Chat Support"
     >
-      <MessageCircle className="w-6 h-6" />
+      <MessageCircle className="h-7 w-7" />
     </button>
   );
 }

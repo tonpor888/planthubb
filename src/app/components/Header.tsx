@@ -225,14 +225,6 @@ export function Header() {
                         <Store className="h-4 w-4" /> ร้านของฉัน
                       </button>
                     )}
-                    {(profile.role === "seller" || profile.role === "admin") && (
-                      <button
-                        onClick={() => setIsChatOpen(true)}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                      >
-                        <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
-                      </button>
-                    )}
                     {profile.role === "admin" && (
                       <>
                         <div className="my-2 h-px bg-slate-200" />
@@ -366,17 +358,6 @@ export function Header() {
                         className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         <Store className="h-4 w-4" /> ร้านของฉัน
-                      </button>
-                    )}
-                    {(profile.role === "seller" || profile.role === "admin") && (
-                      <button
-                        onClick={() => {
-                          setIsChatOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                      >
-                        <MessageCircle className="h-4 w-4" /> ติดต่อเจ้าหน้าที่
                       </button>
                     )}
                     {profile.role === "admin" && (
