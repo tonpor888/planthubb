@@ -173,7 +173,7 @@ export function Header() {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3 text-base font-medium text-white transition hover:bg-emerald-700 shadow-lg"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-6 py-3 text-base font-medium text-white transition hover:scale-105 shadow-lg"
                 >
                   {profile.profileImage ? (
                     <Image
