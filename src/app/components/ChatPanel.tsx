@@ -146,20 +146,35 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
       
       console.log('📊 Total sellers in database:', snapshot.docs.length);
       
-      const allSellers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Seller, 'id'>)
-      } as Seller));
+      const allSellers = snapshot.docs.map(doc => {
+        const data = doc.data() as Partial<Seller>;
+        return {
+          id: doc.id,
+          email: data.email ?? '',
+          firstName: data.firstName ?? '',
+          lastName: data.lastName ?? '',
+          shopName: data.shopName,
+          role: data.role ?? 'seller',
+        } satisfies Seller;
+      });
       
       // Filter sellers by search query
       const searchLower = searchText.toLowerCase();
       const filtered = allSellers.filter(seller => {
-        const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+        const shopName = seller.shopName && seller.shopName.trim()
+          ? seller.shopName.trim()
+          : `${seller.firstName} ${seller.lastName}`.trim();
+
+        const safeShop = shopName.toLowerCase();
+        const safeEmail = seller.email.toLowerCase();
+        const safeFirst = seller.firstName.toLowerCase();
+        const safeLast = seller.lastName.toLowerCase();
+
         return (
-          shopName.toLowerCase().includes(searchLower) ||
-          seller.email.toLowerCase().includes(searchLower) ||
-          seller.firstName.toLowerCase().includes(searchLower) ||
-          seller.lastName.toLowerCase().includes(searchLower)
+          safeShop.includes(searchLower) ||
+          safeEmail.includes(searchLower) ||
+          safeFirst.includes(searchLower) ||
+          safeLast.includes(searchLower)
         );
       });
       
