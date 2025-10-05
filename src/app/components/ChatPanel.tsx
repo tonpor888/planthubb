@@ -179,8 +179,22 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       
       console.log('📊 Total sellers in database:', snapshot.docs.length);
       
+      if (snapshot.empty) {
+        console.warn('⚠️ No sellers found in database!');
+        setSearchedSellers([]);
+        setIsSearchingSellers(false);
+        return;
+      }
+      
       const allSellers = snapshot.docs.map(doc => {
         const data = doc.data() as Partial<Seller>;
+        console.log('👤 Seller data:', {
+          id: doc.id,
+          shopName: data.shopName,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          role: data.role
+        });
         return {
           id: doc.id,
           email: data.email ?? '',
@@ -203,18 +217,35 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         const safeFirst = seller.firstName.toLowerCase();
         const safeLast = seller.lastName.toLowerCase();
 
-        return (
+        const matches = (
           safeShop.includes(searchLower) ||
           safeEmail.includes(searchLower) ||
           safeFirst.includes(searchLower) ||
           safeLast.includes(searchLower)
         );
+        
+        if (matches) {
+          console.log('✅ Match found:', shopName);
+        }
+        
+        return matches;
       });
       
       console.log('✅ Filtered sellers found:', filtered.length, filtered);
       setSearchedSellers(filtered);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error searching sellers:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        name: error.name
+      });
+      
+      if (error.code === 'permission-denied') {
+        console.error('🚫 Permission denied! Check Firestore rules for users collection');
+      }
+      
+      setSearchedSellers([]);
     } finally {
       setIsSearchingSellers(false);
     }

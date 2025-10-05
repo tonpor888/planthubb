@@ -176,13 +176,54 @@ export default function OrdersPage() {
   }, [orders, searchQuery]);
 
   const handleContactSeller = async (order: Order) => {
+    console.log('🔍 Checking order for seller info:', order);
+    
+    // Check if order has direct sellerId
     if (!order.sellerId) {
+      // Try to get sellerId from first item
+      if (order.items && order.items.length > 0 && order.items[0].id) {
+        try {
+          console.log('📦 Fetching product to get sellerId:', order.items[0].id);
+          const productDoc = await getDoc(doc(firestore, 'products', order.items[0].id));
+          
+          if (productDoc.exists()) {
+            const productData = productDoc.data();
+            const sellerId = productData.sellerId || productData.userId;
+            
+            if (sellerId) {
+              console.log('✅ Found sellerId from product:', sellerId);
+              // Continue with fetching seller info
+              const sellerDoc = await getDoc(doc(firestore, 'users', sellerId));
+              
+              if (!sellerDoc.exists()) {
+                alert('ไม่พบข้อมูลผู้ขาย');
+                return;
+              }
+
+              const sellerData = sellerDoc.data();
+              const sellerName = sellerData.shopName || `${sellerData.firstName} ${sellerData.lastName}`;
+              
+              console.log('🛍️ Opening chat for order:', {
+                orderId: order.id,
+                sellerId: sellerId,
+                sellerName
+              });
+
+              openChatWithSeller(sellerId, sellerName, order.id);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching product/seller:', error);
+        }
+      }
+      
       alert('ไม่พบข้อมูลผู้ขาย');
       return;
     }
 
     try {
-      // Fetch seller info
+      // Fetch seller info using order's sellerId
       const sellerDoc = await getDoc(doc(firestore, 'users', order.sellerId));
       if (!sellerDoc.exists()) {
         alert('ไม่พบข้อมูลผู้ขาย');
@@ -198,10 +239,9 @@ export default function OrdersPage() {
         sellerName
       });
 
-      // Trigger chat panel to open with this seller and order
       openChatWithSeller(order.sellerId, sellerName, order.id);
     } catch (error) {
-      console.error('Error fetching seller:', error);
+      console.error('❌ Error fetching seller:', error);
       alert('ไม่สามารถเปิดแชทได้ กรุณาลองใหม่อีกครั้ง');
     }
   };
