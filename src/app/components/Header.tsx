@@ -22,7 +22,7 @@ import Image from "next/image";
 
 import { useAuthContext } from "../providers/AuthProvider";
 import FloatingChatButton from "./FloatingChatButton";
-import ChatSupport from "./ChatSupport";
+import ChatPanel from "./ChatPanel";
 
 export function Header() {
   const router = useRouter();
@@ -432,8 +432,8 @@ export function Header() {
       {/* Floating Chat Button */}
       <FloatingChatButton onClick={() => setIsChatOpen(true)} />
       
-      {/* Chat Support Component */}
-      <ChatSupport 
+      {/* Chat Panel Component */}
+      <ChatPanel 
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
       />

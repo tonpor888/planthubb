@@ -385,32 +385,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <section id="community" className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 py-20 text-white">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-4 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-white/70">PlantHub Community</p>
-            <h2 className="max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
-              ร่วมสร้างโลกที่เต็มไปด้วยพื้นที่สีเขียวไปกับเรา
-            </h2>
-            <p className="max-w-2xl text-lg text-white/90">
-              เพียงสมัครสมาชิกวันนี้ รับทันทีคูปองส่วนลดสำหรับคำสั่งซื้อครั้งแรก พร้อมเข้าถึงเวิร์กช็อปออนไลน์และคำแนะนำจากผู้เชี่ยวชาญ
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-emerald-600 shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-50"
-              >
-                สมัครสมาชิก
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-full border border-white/70 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/15"
-              >
-                เข้าสู่ระบบ
-              </Link>
-            </div>
-          </div>
-        </section>
       </>
   );
 }
