@@ -76,17 +76,24 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       return;
     }
 
-    setChatRooms((previousRooms) =>
-      previousRooms.map((room) =>
-        room.id === chatId
-          ? {
-              ...room,
-              unreadCount: 0,
-            }
-          : room
-      )
-    );
-  }, []);
+    setChatRooms((previousRooms) => {
+      let changed = false;
+      const updatedRooms = previousRooms.map((room) => {
+        if (room.id === chatId && (room.unreadCount ?? 0) > 0) {
+          changed = true;
+          return { ...room, unreadCount: 0 };
+        }
+        return room;
+      });
+
+      if (changed) {
+        const total = updatedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+        onUnreadCountChange?.(total);
+      }
+
+      return updatedRooms;
+    });
+  }, [onUnreadCountChange]);
 
   // Consolidate multiple admin support chats into one per customer
   const consolidateAdminChats = (rooms: ChatRoom[]): ChatRoom[] => {
@@ -588,6 +595,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     }
     
     try {
+      clearUnreadForChat(chatRoomId);
       await deleteChatRoom(chatRoomId);
       console.log('✅ Chat room deleted');
       // The real-time subscription will automatically update the list
@@ -619,6 +627,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       if (isManageMode) {
         setIsManageMode(false);
       }
+      onUnreadCountChange?.(0);
     } catch (error) {
       console.error('Error deleting all chat rooms:', error);
       alert('ไม่สามารถลบการสนทนาทั้งหมดได้ กรุณาลองใหม่อีกครั้ง');
