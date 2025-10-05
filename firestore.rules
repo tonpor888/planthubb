@@ -21,12 +21,12 @@ service cloud.firestore {
         return resource.data.role == 'seller';
       }
 
-  // Allow users to manage their own profile
-  allow create: if request.auth != null && request.auth.uid == userId;
-  allow update, delete: if isSelf() || isAdmin();
+      // Allow users to manage their own profile
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if isSelf() || isAdmin();
 
-      // Allow reading seller profiles and admin access
-      allow get: if request.auth != null && (isSelf() || isSellerProfile() || isAdmin());
+      // Allow authenticated users to read any user profile (for shop details, chat search)
+      allow get: if request.auth != null;
 
       // Allow querying seller profiles for authenticated users (chat search, product pages)
       allow list: if request.auth != null;
