@@ -15,6 +15,7 @@ type OrderItem = {
   price: number;
   quantity: number;
   image: string;
+  sellerId?: string;
 };
 
 type Order = {
@@ -169,7 +170,7 @@ export default function OrdersPage() {
     return orders.filter(order => 
       order.status.toLowerCase().includes(query) ||
       order.paymentMethod.toLowerCase().includes(query) ||
-      order.items.some((item: any) => item.name.toLowerCase().includes(query)) ||
+  order.items.some((item) => item.name.toLowerCase().includes(query)) ||
       order.id.toLowerCase().includes(query) ||
       order.total.toString().includes(query)
     );

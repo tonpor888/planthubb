@@ -169,12 +169,24 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           console.log('📬 ChatPanel: Received', rooms.length, 'chat rooms');
           
           // For admins, consolidate multiple admin support chats into one
-          let processedRooms = rooms;
-          if (profile.role === 'admin') {
+          let processedRooms: ChatRoom[] = rooms;
+          if (profile?.role === 'admin') {
             processedRooms = consolidateAdminChats(rooms);
+          } else if (profile?.role === 'seller' || profile?.role === 'both') {
+            processedRooms = rooms.filter((room) =>
+              room.sellerId === firebaseUser.uid || room.customerId === firebaseUser.uid
+            );
+          } else {
+            processedRooms = rooms.filter((room) => room.customerId === firebaseUser.uid);
           }
-          
+
           setChatRooms(processedRooms);
+          setSelectedChat((previous) => {
+            if (!previous) {
+              return previous;
+            }
+            return processedRooms.some((room) => room.id === previous.id) ? previous : null;
+          });
           
           // Calculate and update unread count
           const total = processedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);

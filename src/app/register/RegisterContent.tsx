@@ -3,12 +3,24 @@
 import { FormEvent, useMemo, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebaseClient";
 
 import { useAuthContext } from "../providers/AuthProvider";
 
 type UserType = "buyer" | "seller" | "both";
+
+type PendingUserDocData = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: "customer" | "seller";
+  storeName?: string;
+};
+
+type PendingUser = PendingUserDocData & {
+  docId: string;
+};
 
 function RegisterForm() {
   const router = useRouter();
@@ -25,27 +37,10 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
-
-  // Block register until Monday - REMOVE THIS ON PRESENTATION DAY
-  const [unlockPassword, setUnlockPassword] = useState("");
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const isMonday = today === 1;
-  const isRegistrationLocked = !isMonday && !isUnlocked;
-  
-  const handleUnlock = () => {
-    if (unlockPassword === "planthub12345") {
-      setIsUnlocked(true);
-    }
-  };
+  const [pendingUser, setPendingUser] = useState<PendingUser | null>(null);
 
   // ตรวจสอบว่ามีผู้ใช้ที่รอการสมัครสมาชิกหรือไม่
   useEffect(() => {
-    if (isRegistrationLocked) {
-      return;
-    }
-
     const checkPendingUser = async () => {
       const emailParam = searchParams.get('email');
       if (emailParam) {
@@ -60,12 +55,23 @@ function RegisterForm() {
           const querySnapshot = await getDocs(q);
           
           if (!querySnapshot.empty) {
-            const userData = querySnapshot.docs[0].data();
-            setPendingUser({ ...userData, docId: querySnapshot.docs[0].id });
-            setEmail(userData.email);
-            setFirstName(userData.firstName);
-            setLastName(userData.lastName);
-            setUserType(userData.role === "customer" ? "buyer" : "seller");
+            const docSnapshot = querySnapshot.docs[0];
+            const userData = docSnapshot.data() as PendingUserDocData;
+            const pendingRecord: PendingUser = {
+              docId: docSnapshot.id,
+              email: userData.email,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              role: userData.role,
+              storeName: userData.storeName,
+            };
+
+            setPendingUser(pendingRecord);
+            setEmail(pendingRecord.email);
+            setFirstName(pendingRecord.firstName);
+            setLastName(pendingRecord.lastName);
+            setStoreName(pendingRecord.storeName ?? "");
+            setUserType(pendingRecord.role === "customer" ? "buyer" : "seller");
           }
         } catch (error) {
           console.error("Error checking pending user:", error);
@@ -74,7 +80,7 @@ function RegisterForm() {
     };
 
     checkPendingUser();
-  }, [searchParams, isRegistrationLocked]);
+  }, [searchParams]);
 
   const storeNameRequired = useMemo(() => userType !== "buyer", [userType]);
 
@@ -120,8 +126,9 @@ function RegisterForm() {
       }
 
       router.push("/verify-email");
-    } catch (err: any) {
-      setError(err?.message ?? "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,63 +141,13 @@ function RegisterForm() {
     try {
       await signInGoogle();
       router.push("/");
-    } catch (err: any) {
-      setError(err?.message ?? "เกิดข้อผิดพลาดในการสมัครสมาชิกด้วย Google");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการสมัครสมาชิกด้วย Google";
+      setError(message);
     } finally {
       setIsGoogleLoading(false);
     }
   };
-
-  if (isRegistrationLocked) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-lime-50 to-white py-16 flex items-center justify-center">
-        <div className="mx-auto max-w-2xl px-4">
-          <div className="rounded-3xl border-4 border-emerald-500 bg-white p-12 shadow-2xl shadow-emerald-500/20 text-center">
-            <div className="mb-6 text-8xl">🌿</div>
-            <h1 className="text-4xl font-bold text-emerald-900 mb-4">
-              ขออภัยในความไม่สะดวก
-            </h1>
-            <p className="text-xl text-slate-600 mb-6">
-              ระบบสมัครสมาชิกจะเปิดให้บริการในวันจันทร์
-            </p>
-            <div className="bg-emerald-50 rounded-2xl p-6 mb-6">
-              <p className="text-lg font-semibold text-emerald-700">
-                See you on Monday! 👋
-              </p>
-              <p className="text-sm text-slate-500 mt-2">
-                เรากำลังปรับปรุงระบบเพื่อประสบการณ์ที่ดีขึ้น
-              </p>
-            </div>
-            
-            {/* Admin Unlock */}
-            <div className="mb-6">
-              <input
-                type="password"
-                value={unlockPassword}
-                onChange={(e) => setUnlockPassword(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-                placeholder="Admin Password"
-                className="w-full max-w-sm mx-auto rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-              />
-              <button
-                onClick={handleUnlock}
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-600 px-6 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
-              >
-                🔓 Unlock
-              </button>
-            </div>
-            
-            <Link 
-              href="/"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-8 py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-105"
-            >
-              กลับหน้าแรก
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lime-50 via-white to-emerald-50 py-16">
