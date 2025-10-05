@@ -20,7 +20,7 @@ import { firestore } from "@/lib/firebaseClient";
 type Order = {
   id: string;
   buyerId: string;
-  buyerName: string;
+  buyerName?: string;
   items: Array<{
     productId: string;
     name: string;
@@ -105,12 +105,27 @@ export default function PendingOrdersPage() {
   }, [profile, router]);
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return matchesSearch;
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return true;
+
+    const orderId = order.id?.toLowerCase?.() ?? "";
+    const buyerName = order.buyerName?.toLowerCase?.() ?? "";
+    const paymentStatus = order.paymentStatus?.toLowerCase?.() ?? "";
+    const status = order.status?.toLowerCase?.() ?? "";
+    const paymentMethod = order.paymentMethod?.toLowerCase?.() ?? "";
+    const itemsText = order.items
+      ?.map(item => item?.name?.toLowerCase?.() ?? "")
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      orderId.includes(keyword) ||
+      buyerName.includes(keyword) ||
+      paymentStatus.includes(keyword) ||
+      status.includes(keyword) ||
+      paymentMethod.includes(keyword) ||
+      itemsText.includes(keyword)
+    );
   });
 
   const handleApproveOrder = async (orderId: string) => {
