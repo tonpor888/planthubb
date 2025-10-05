@@ -23,7 +23,8 @@ import Image from "next/image";
 import { useAuthContext } from "../providers/AuthProvider";
 import FloatingChatButton from "./FloatingChatButton";
 import ChatPanel from "./ChatPanel";
-import { getUserChatRooms, subscribeToChatRooms, type ChatRoom } from "../../services/firebase/chat.service";
+import { subscribeToChatRooms, type ChatRoom } from "../../services/firebase/chat.service";
+import { loadChatReadState } from "../lib/chatReadStorage";
 import { chatTrigger } from "../hooks/useChatTrigger";
 
 export function Header() {
@@ -39,6 +40,19 @@ export function Header() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const resolveLastMessageTimestamp = (room: ChatRoom): number => {
+    const value = room.lastMessageTime;
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+
+    if (value && typeof (value as { toDate?: () => Date }).toDate === "function") {
+      return (value as { toDate: () => Date }).toDate().getTime();
+    }
+
+    return Date.now();
+  };
   
   // Listen for chat trigger events from other components
   useEffect(() => {
@@ -73,7 +87,19 @@ export function Header() {
       firebaseUser.uid,
       userRole,
       (rooms: ChatRoom[]) => {
-        const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+        const storedLastRead = loadChatReadState(firebaseUser.uid);
+        const total = rooms.reduce((sum, room) => {
+          const chatId = room.id ?? "";
+          const lastReadTimestamp = chatId ? storedLastRead.get(chatId) : undefined;
+          if (lastReadTimestamp !== undefined) {
+            const lastMessageTimestamp = resolveLastMessageTimestamp(room);
+            if (lastMessageTimestamp <= lastReadTimestamp) {
+              return sum;
+            }
+          }
+
+          return sum + (room.unreadCount || 0);
+        }, 0);
         console.log('🔔 Total unread messages:', total, 'from', rooms.length, 'chat rooms');
         setUnreadCount(total);
       }

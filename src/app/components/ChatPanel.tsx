@@ -17,6 +17,7 @@ import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2, Spa
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
 import { chatTrigger } from '../hooks/useChatTrigger';
+import { loadChatReadState, persistChatReadState, clearChatReadState } from '../lib/chatReadStorage';
 
 type Seller = {
   id: string;
@@ -85,6 +86,16 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     return Date.now();
   };
 
+  const persistClearedState = useCallback((mapChanged: boolean) => {
+    if (!mapChanged) {
+      return;
+    }
+
+    if (firebaseUser?.uid) {
+      persistChatReadState(firebaseUser.uid, clearedChatMetadataRef.current);
+    }
+  }, [firebaseUser?.uid]);
+
   const clearUnreadForChat = useCallback((chatId: string | undefined | null) => {
     if (!chatId) {
       return;
@@ -104,6 +115,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       });
 
       clearedChatMetadataRef.current.set(chatId, lastSeenMessageTime);
+      persistClearedState(true);
 
       if (changed) {
         const total = updatedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
@@ -112,7 +124,17 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
 
       return updatedRooms;
     });
-  }, [onUnreadCountChange]);
+  }, [onUnreadCountChange, persistClearedState]);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      clearedChatMetadataRef.current.clear();
+      return;
+    }
+
+    const storedMap = loadChatReadState(firebaseUser.uid);
+    clearedChatMetadataRef.current = new Map(storedMap);
+  }, [firebaseUser]);
 
   // Consolidate multiple admin support chats into one per customer
   const consolidateAdminChats = (rooms: ChatRoom[]): ChatRoom[] => {
@@ -244,6 +266,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           }
 
           const clearedMap = clearedChatMetadataRef.current;
+          let mapChanged = false;
           const normalizedRooms = processedRooms.map((room) => {
             if (!room.id) {
               return room;
@@ -258,7 +281,9 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
             const lastMessageTime = resolveLastMessageTimestamp(room);
 
             if (serverUnread === 0) {
-              clearedMap.delete(room.id);
+              if (clearedMap.delete(room.id)) {
+                mapChanged = true;
+              }
               return room;
             }
 
@@ -266,9 +291,13 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
               return { ...room, unreadCount: 0 };
             }
 
-            clearedMap.delete(room.id);
+            if (clearedMap.delete(room.id)) {
+              mapChanged = true;
+            }
             return room;
           });
+
+          persistClearedState(mapChanged);
 
           setChatRooms(normalizedRooms);
           setSelectedChat((previous) => {
@@ -642,7 +671,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     
     try {
       clearUnreadForChat(chatRoomId);
-  clearedChatMetadataRef.current.delete(chatRoomId);
+  const didDelete = clearedChatMetadataRef.current.delete(chatRoomId);
+  persistClearedState(didDelete);
       await deleteChatRoom(chatRoomId);
       console.log('✅ Chat room deleted');
       // The real-time subscription will automatically update the list
@@ -674,7 +704,15 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       if (isManageMode) {
         setIsManageMode(false);
       }
-  clearedChatMetadataRef.current.clear();
+      const hadEntries = clearedChatMetadataRef.current.size > 0;
+      clearedChatMetadataRef.current.clear();
+      if (firebaseUser?.uid) {
+        if (hadEntries) {
+          persistChatReadState(firebaseUser.uid, clearedChatMetadataRef.current);
+        } else {
+          clearChatReadState(firebaseUser.uid);
+        }
+      }
       onUnreadCountChange?.(0);
     } catch (error) {
       console.error('Error deleting all chat rooms:', error);
