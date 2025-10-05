@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Package, Truck, BadgeDollarSign, FileDown, Undo2, Loader2, CalendarCheck, DollarSign, PackageCheck, ArrowLeft, Search, MessageCircle } from "lucide-react";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 
 import { useAuthContext } from "../providers/AuthProvider";
 import { firestore } from "@/lib/firebaseClient";
-import SellerChatWindow from "../components/SellerChatWindow";
+import { useChatTrigger } from "../hooks/useChatTrigger";
 
 type OrderItem = {
   id: string;
@@ -82,7 +82,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOrderForChat, setSelectedOrderForChat] = useState<Order | null>(null);
+  const { openChatWithSeller } = useChatTrigger();
 
   useEffect(() => {
     if (!firebaseUser) {
@@ -174,6 +174,37 @@ export default function OrdersPage() {
       order.total.toString().includes(query)
     );
   }, [orders, searchQuery]);
+
+  const handleContactSeller = async (order: Order) => {
+    if (!order.sellerId) {
+      alert('ไม่พบข้อมูลผู้ขาย');
+      return;
+    }
+
+    try {
+      // Fetch seller info
+      const sellerDoc = await getDoc(doc(firestore, 'users', order.sellerId));
+      if (!sellerDoc.exists()) {
+        alert('ไม่พบข้อมูลผู้ขาย');
+        return;
+      }
+
+      const sellerData = sellerDoc.data();
+      const sellerName = sellerData.shopName || `${sellerData.firstName} ${sellerData.lastName}`;
+      
+      console.log('🛍️ Opening chat for order:', {
+        orderId: order.id,
+        sellerId: order.sellerId,
+        sellerName
+      });
+
+      // Trigger chat panel to open with this seller and order
+      openChatWithSeller(order.sellerId, sellerName, order.id);
+    } catch (error) {
+      console.error('Error fetching seller:', error);
+      alert('ไม่สามารถเปิดแชทได้ กรุณาลองใหม่อีกครั้ง');
+    }
+  };
 
   if (!firebaseUser) {
     return (
@@ -302,7 +333,7 @@ export default function OrdersPage() {
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-full border border-blue-500 px-5 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
-                      onClick={() => setSelectedOrderForChat(order)}
+                      onClick={() => handleContactSeller(order)}
                     >
                       <MessageCircle className="h-4 w-4" /> ติดต่อร้านค้า
                     </button>
@@ -319,13 +350,6 @@ export default function OrdersPage() {
           )}
         </div>
       </div>
-      
-      {/* Seller Chat Window */}
-      <SellerChatWindow 
-        order={selectedOrderForChat} 
-        onClose={() => setSelectedOrderForChat(null)} 
-      />
     </div>
   );
 }
-

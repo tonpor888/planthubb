@@ -24,6 +24,7 @@ import { useAuthContext } from "../providers/AuthProvider";
 import FloatingChatButton from "./FloatingChatButton";
 import ChatPanel from "./ChatPanel";
 import { getUserChatRooms, subscribeToChatRooms, type ChatRoom } from "../../services/firebase/chat.service";
+import { chatTrigger } from "../hooks/useChatTrigger";
 
 export function Header() {
   const router = useRouter();
@@ -33,9 +34,21 @@ export function Header() {
   const [isMounted, setIsMounted] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatTriggerData, setChatTriggerData] = useState<{sellerId: string; sellerName: string; orderId?: string} | null>(null);
   
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+  
+  // Listen for chat trigger events from other components
+  useEffect(() => {
+    const unsubscribe = chatTrigger.subscribe((payload) => {
+      console.log('📨 Chat trigger received:', payload);
+      setChatTriggerData(payload);
+      setIsChatOpen(true);
+    });
+    
+    return unsubscribe;
   }, []);
   
   // Load unread message count with real-time updates
@@ -489,8 +502,12 @@ export function Header() {
       {/* Chat Panel Component */}
       <ChatPanel 
         isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)}
+        onClose={() => {
+          setIsChatOpen(false);
+          setChatTriggerData(null);
+        }}
         onUnreadCountChange={setUnreadCount}
+        triggerData={chatTriggerData}
       />
     </>
   );

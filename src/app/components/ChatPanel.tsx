@@ -9,10 +9,11 @@ import {
   sendMessage,
   markMessagesAsRead,
   createChatRoom,
+  deleteChatRoom,
   type ChatMessage,
   type ChatRoom 
 } from '../../services/firebase/chat.service';
-import { MessageCircle, X, Send, Search, User, Shield, Store, Clock } from 'lucide-react';
+import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
 
@@ -29,9 +30,14 @@ interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onUnreadCountChange?: (count: number) => void;
+  triggerData?: {
+    sellerId: string;
+    sellerName: string;
+    orderId?: string;
+  } | null;
 }
 
-export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: ChatPanelProps) {
+export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, triggerData }: ChatPanelProps) {
   const { firebaseUser, profile } = useAuthContext();
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
@@ -52,6 +58,21 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle external chat trigger (from orders page)
+  useEffect(() => {
+    if (triggerData && isOpen && firebaseUser && profile) {
+      console.log('🎯 Processing chat trigger:', triggerData);
+      handleStartChatWithSeller({
+        id: triggerData.sellerId,
+        email: '',
+        firstName: '',
+        lastName: '',
+        shopName: triggerData.sellerName,
+        role: 'seller'
+      }, triggerData.orderId);
+    }
+  }, [triggerData, isOpen]);
 
   // Load chat rooms with real-time updates
   useEffect(() => {
@@ -199,24 +220,31 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
     }
   };
 
-  const handleStartChatWithSeller = async (seller: Seller) => {
+  const handleStartChatWithSeller = async (seller: Seller, orderId?: string) => {
     if (!firebaseUser || !profile) return;
     
     try {
       const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+      console.log('🛍️ Starting chat with seller:', { sellerId: seller.id, shopName, orderId });
+      
       const chatId = await createChatRoom(
         'seller_support',
         firebaseUser.uid,
         `${profile.firstName} ${profile.lastName}`.trim(),
         seller.id,
-        shopName
+        shopName,
+        orderId
       );
       
       // Real-time subscription will automatically update the chat rooms list
       // Wait a bit for the room to be loaded via subscription
       setTimeout(() => {
-        const room = chatRooms.find(r => r.sellerId === seller.id || r.id === chatId);
+        const room = chatRooms.find(r => 
+          (r.sellerId === seller.id && r.orderId === orderId) || 
+          r.id === chatId
+        );
         if (room) {
+          console.log('✅ Found and selecting chat room:', room.id);
           setSelectedChat(room);
         }
       }, 500);
@@ -299,12 +327,21 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
   };
 
   const getChatTitle = (room: ChatRoom) => {
+    let title = '';
     if (room.chatType === 'admin_support') {
-      return 'แอดมิน PlantHub';
+      title = 'แอดมิน PlantHub';
     } else if (room.sellerName) {
-      return room.sellerName;
+      title = room.sellerName;
+    } else {
+      title = 'ผู้ดูแลระบบ';
     }
-    return 'ผู้ดูแลระบบ';
+    
+    // Add order ID if available
+    if (room.orderId) {
+      title += ` #${room.orderId.slice(-8).toUpperCase()}`;
+    }
+    
+    return title;
   };
 
   const formatTime = (date: Date | undefined) => {
@@ -332,6 +369,23 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
     return parts.map((part, index) => 
       regex.test(part) ? <mark key={index} className="bg-yellow-200 text-gray-900">{part}</mark> : part
     );
+  };
+
+  const handleDeleteChatRoom = async (chatRoomId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the chat
+    
+    if (!confirm('ต้องการลบการสนทนานี้หรือไม่?')) {
+      return;
+    }
+    
+    try {
+      await deleteChatRoom(chatRoomId);
+      console.log('✅ Chat room deleted');
+      // The real-time subscription will automatically update the list
+    } catch (error) {
+      console.error('Error deleting chat room:', error);
+      alert('ไม่สามารถลบการสนทนาได้ กรุณาลองใหม่อีกครั้ง');
+    }
   };
 
   if (!isOpen) return null;
@@ -460,53 +514,66 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                   <>
                     {/* Existing Chat Rooms */}
                     {filteredChatRooms.map((room) => (
-                      <button
+                      <div
                         key={room.id}
-                        onClick={() => {
-                          setSelectedChat(room);
-                          // Mark messages as read immediately when clicking
-                          if (firebaseUser && room.id) {
-                            markMessagesAsRead(room.id, firebaseUser.uid);
-                            // Real-time subscription will automatically update unread count
-                          }
-                        }}
-                        className="w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
+                        className="relative group w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
                       >
-                        {/* Avatar */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center">
-                          {getChatIcon(room)}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-semibold text-gray-900 truncate">
-                              {searchQuery ? highlightText(getChatTitle(room), searchQuery) : getChatTitle(room)}
-                            </h3>
-                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                              {formatTime(room.lastMessageTime)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 truncate">
-                            {searchQuery && room.lastMessage 
-                              ? highlightText(room.lastMessage, searchQuery)
-                              : (room.lastMessage || 'ยังไม่มีข้อความ')
+                        <button
+                          onClick={() => {
+                            setSelectedChat(room);
+                            // Mark messages as read immediately when clicking
+                            if (firebaseUser && room.id) {
+                              markMessagesAsRead(room.id, firebaseUser.uid);
+                              // Real-time subscription will automatically update unread count
                             }
-                          </p>
-                          {room.status === 'closed' && (
-                            <span className="text-xs text-red-500 mt-1 inline-block">
-                              (ปิดแล้ว)
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Unread Badge */}
-                        {room.unreadCount > 0 && (
-                          <div className="flex-shrink-0 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                            {room.unreadCount > 9 ? '9+' : room.unreadCount}
+                          }}
+                          className="flex-1 flex items-start gap-3 min-w-0"
+                        >
+                          {/* Avatar */}
+                          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center">
+                            {getChatIcon(room)}
                           </div>
-                        )}
-                      </button>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="font-semibold text-gray-900 truncate">
+                                {searchQuery ? highlightText(getChatTitle(room), searchQuery) : getChatTitle(room)}
+                              </h3>
+                              <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                {formatTime(room.lastMessageTime)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 truncate">
+                              {searchQuery && room.lastMessage 
+                                ? highlightText(room.lastMessage, searchQuery)
+                                : (room.lastMessage || 'ยังไม่มีข้อความ')
+                              }
+                            </p>
+                            {room.status === 'closed' && (
+                              <span className="text-xs text-red-500 mt-1 inline-block">
+                                (ปิดแล้ว)
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Unread Badge */}
+                          {room.unreadCount > 0 && (
+                            <div className="flex-shrink-0 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                              {room.unreadCount > 9 ? '9+' : room.unreadCount}
+                            </div>
+                          )}
+                        </button>
+                        
+                        {/* Delete Button - Shows on hover */}
+                        <button
+                          onClick={(e) => handleDeleteChatRoom(room.id!, e)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg z-10"
+                          title="ลบการสนทนา"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                     
                     {/* Searched Sellers - Show when searching and there are results */}
