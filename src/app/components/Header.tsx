@@ -100,6 +100,20 @@ export function Header() {
     setIsMobileMenuOpen(false);
   }, [profile]);
 
+  // Listen for chat with seller event from product page
+  useEffect(() => {
+    const handleOpenChatWithSeller = (event: CustomEvent) => {
+      console.log('📢 Received openChatWithSeller event:', event.detail);
+      setIsChatOpen(true);
+    };
+
+    window.addEventListener('openChatWithSeller', handleOpenChatWithSeller as EventListener);
+
+    return () => {
+      window.removeEventListener('openChatWithSeller', handleOpenChatWithSeller as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

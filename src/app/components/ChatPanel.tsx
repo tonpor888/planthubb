@@ -118,11 +118,14 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
       return;
     }
     
+    console.log('🔍 Searching for sellers with query:', searchText);
     setIsSearchingSellers(true);
     try {
       const usersRef = collection(firestore, 'users');
       const q = query(usersRef, where('role', '==', 'seller'));
       const snapshot = await getDocs(q);
+      
+      console.log('📊 Total sellers in database:', snapshot.docs.length);
       
       const allSellers = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -141,9 +144,10 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
         );
       });
       
+      console.log('✅ Filtered sellers found:', filtered.length, filtered);
       setSearchedSellers(filtered);
     } catch (error) {
-      console.error('Error searching sellers:', error);
+      console.error('❌ Error searching sellers:', error);
     } finally {
       setIsSearchingSellers(false);
     }
@@ -354,12 +358,18 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                 {searchQuery && (
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs text-blue-600 font-medium">
-                      {filteredChatRooms.length === 0 
-                        ? 'ไม่พบผลการค้นหา' 
-                        : `พบ ${filteredChatRooms.length} รายการ`
-                      }
+                      {isSearchingSellers ? (
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block animate-spin rounded-full h-3 w-3 border-2 border-blue-600 border-t-transparent"></span>
+                          กำลังค้นหาร้านค้า...
+                        </span>
+                      ) : filteredChatRooms.length === 0 && searchedSellers.length === 0 ? (
+                        'ไม่พบผลการค้นหา'
+                      ) : (
+                        `พบ ${filteredChatRooms.length + searchedSellers.length} รายการ ${searchedSellers.length > 0 ? `(ร้านค้า ${searchedSellers.length})` : ''}`
+                      )}
                     </p>
-                    {filteredChatRooms.length > 0 && (
+                    {(filteredChatRooms.length > 0 || searchedSellers.length > 0) && (
                       <span className="text-xs text-gray-500">
                         กำลังค้นหา: "{searchQuery}"
                       </span>
@@ -458,6 +468,15 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                     ))}
                     
                     {/* Searched Sellers - Show when searching and there are results */}
+                    {(() => {
+                      console.log('🎨 Rendering sellers section:', {
+                        searchQuery,
+                        searchedSellersLength: searchedSellers.length,
+                        searchedSellers,
+                        shouldShow: searchQuery && searchedSellers.length > 0
+                      });
+                      return null;
+                    })()}
                     {searchQuery && searchedSellers.length > 0 && (
                       <>
                         {filteredChatRooms.length > 0 && (

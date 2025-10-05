@@ -24,6 +24,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { realtimeDb, firestore } from "@/lib/firebaseClient";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthContext } from "@/app/providers/AuthProvider";
+import { createChatRoom } from "@/services/firebase/chat.service";
 
 type Product = {
   id: string;
@@ -55,7 +56,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
-  const { firebaseUser } = useAuthContext();
+  const { firebaseUser, profile } = useAuthContext();
   const addToCart = useCartStore((state) => state.addItem);
   
   const [product, setProduct] = useState<Product | null>(null);
@@ -63,6 +64,42 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleChatWithSeller = async () => {
+    if (!firebaseUser || !profile || !seller || !product || !product.sellerId) {
+      alert('กรุณาเข้าสู่ระบบเพื่อแชทกับผู้ขาย');
+      router.push('/login');
+      return;
+    }
+
+    setIsStartingChat(true);
+    try {
+      const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+      
+      // Create or get existing chat room
+      await createChatRoom(
+        'seller_support',
+        firebaseUser.uid,
+        `${profile.firstName} ${profile.lastName}`.trim(),
+        product.sellerId,
+        shopName
+      );
+      
+      // Trigger the floating chat to open
+      // We'll use window event to communicate with Header component
+      window.dispatchEvent(new CustomEvent('openChatWithSeller', {
+        detail: { sellerId: product.sellerId, shopName }
+      }));
+      
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('ไม่สามารถเริ่มการสนทนาได้ กรุณาลองอีกครั้ง');
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -350,9 +387,13 @@ export default function ProductDetailPage() {
                       </div>
                     </div>
                   </div>
-                  <button className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 flex items-center gap-2">
+                  <button 
+                    onClick={handleChatWithSeller}
+                    disabled={isStartingChat}
+                    className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <MessageCircle className="h-4 w-4" />
-                    แชท
+                    {isStartingChat ? 'กำลังเชื่อมต่อ...' : 'แชท'}
                   </button>
                 </div>
                 
