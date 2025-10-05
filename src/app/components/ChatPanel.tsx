@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuthContext } from '../providers/AuthProvider';
 import { 
+  getUserChatRooms,
   subscribeToChatMessages,
   subscribeToChatRooms,
   sendMessage,
@@ -12,8 +13,8 @@ import {
   type ChatMessage,
   type ChatRoom 
 } from '../../services/firebase/chat.service';
-import { MessageCircle, X, Send, Search, User, Shield, Store, Trash2 } from 'lucide-react';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2 } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
 import { chatTrigger } from '../hooks/useChatTrigger';
 
@@ -48,9 +49,12 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   const [isSending, setIsSending] = useState(false);
   const [searchedSellers, setSearchedSellers] = useState<Seller[]>([]);
   const [isSearchingSellers, setIsSearchingSellers] = useState(false);
+  const [isManageMode, setIsManageMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
-  const pendingChatIdRef = useRef<string | null>(null);
+
+  const isAdmin = profile?.role === 'admin';
+  const canManageChats = !!profile && !isAdmin;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -171,7 +175,12 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           // For admins, consolidate multiple admin support chats into one
           let processedRooms: ChatRoom[] = rooms;
           if (profile?.role === 'admin') {
-            processedRooms = consolidateAdminChats(rooms);
+            const adminRelatedRooms = rooms.filter((room) =>
+              room.chatType === 'admin_support' ||
+              room.customerId === firebaseUser.uid ||
+              room.sellerId === firebaseUser.uid
+            );
+            processedRooms = consolidateAdminChats(adminRelatedRooms);
           } else if (profile?.role === 'seller') {
             processedRooms = rooms.filter((room) =>
               room.sellerId === firebaseUser.uid || room.customerId === firebaseUser.uid
@@ -181,25 +190,10 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           }
 
           setChatRooms(processedRooms);
-
-          const pendingChatId = pendingChatIdRef.current;
-          let pendingSelection: ChatRoom | null = null;
-          if (pendingChatId) {
-            pendingSelection = processedRooms.find((room) => room.id === pendingChatId) ?? null;
-            if (pendingSelection) {
-              pendingChatIdRef.current = null;
-            }
-          }
-
           setSelectedChat((previous) => {
-            if (pendingSelection) {
-              return pendingSelection;
-            }
-
             if (!previous) {
               return previous;
             }
-
             return processedRooms.some((room) => room.id === previous.id) ? previous : null;
           });
           
@@ -207,6 +201,9 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           const total = processedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
           console.log('🔔 ChatPanel: Total unread:', total);
           onUnreadCountChange?.(total);
+          if (!processedRooms.length) {
+            setIsManageMode((previous) => (previous ? false : previous));
+          }
           
           setIsLoading(false);
         }
@@ -254,6 +251,24 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  const loadChatRooms = async () => {
+    if (!firebaseUser) return;
+    
+    setIsLoading(true);
+    try {
+      const rooms = await getUserChatRooms(firebaseUser.uid, 'customer');
+      setChatRooms(rooms);
+      
+      // Calculate and update unread count
+      const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+      onUnreadCountChange?.(total);
+    } catch (error) {
+      console.error('Error loading chat rooms:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const searchSellers = async (searchText: string) => {
     if (!searchText.trim()) {
@@ -327,20 +342,15 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       
       console.log('✅ Filtered users found:', filtered.length, filtered);
       setSearchedSellers(filtered);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('❌ Error searching users:', error);
-
-      const errorDetails = typeof error === 'object' && error !== null
-        ? {
-            code: 'code' in error ? (error as { code?: string }).code : undefined,
-            message: 'message' in error ? (error as { message?: string }).message : undefined,
-            name: 'name' in error ? (error as { name?: string }).name : undefined,
-          }
-        : { code: undefined, message: undefined, name: undefined };
-
-      console.error('Error details:', errorDetails);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        name: error.name
+      });
       
-      if (errorDetails.code === 'permission-denied') {
+      if (error.code === 'permission-denied') {
         console.error('🚫 Permission denied! Check Firestore rules for users collection');
       }
       
@@ -383,32 +393,28 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       
       // Real-time subscription will automatically update the chat rooms list
       // Wait a bit for the room to be loaded via subscription
-      const existingRoom = chatRooms.find((room) => room.id === chatId);
-      if (existingRoom) {
-        console.log('✅ Found existing chat room immediately:', existingRoom.id);
-        setSelectedChat(existingRoom);
-      } else {
-        pendingChatIdRef.current = chatId;
-      }
+      setTimeout(() => {
+        const room = chatRooms.find(r => 
+          (r.sellerId === seller.id && r.orderId === orderId) || 
+          r.id === chatId
+        );
+        if (room) {
+          console.log('✅ Found and selecting chat room:', room.id);
+          setSelectedChat(room);
+        }
+      }, 500);
       
       // Clear search
       setSearchQuery('');
       setSearchedSellers([]);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error starting chat with seller:', error);
-
-      const errorDetails = typeof error === 'object' && error !== null
-        ? {
-            code: 'code' in error ? (error as { code?: string }).code : undefined,
-            message: 'message' in error ? (error as { message?: string }).message : undefined,
-            name: 'name' in error ? (error as { name?: string }).name : undefined,
-          }
-        : { code: undefined, message: undefined, name: undefined };
-
-      console.error('Error details:', errorDetails);
-
-      const fallbackMessage = errorDetails.message ?? 'กรุณาลองอีกครั้ง';
-      alert(`ไม่สามารถเริ่มการสนทนาได้: ${fallbackMessage}`);
+      console.error('Error details:', {
+        code: error?.code,
+        message: error?.message,
+        name: error?.name
+      });
+      alert(`ไม่สามารถเริ่มการสนทนาได้: ${error?.message || 'กรุณาลองอีกครั้ง'}`);
     }
   };
 
@@ -422,13 +428,15 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         `${profile.firstName} ${profile.lastName}`.trim()
       );
       
-      const existingRoom = chatRooms.find((room) => room.id === chatId);
-      if (existingRoom) {
-        setSelectedChat(existingRoom);
-      } else {
-        pendingChatIdRef.current = chatId;
-      }
-    } catch (error: unknown) {
+      // Real-time subscription will automatically update the chat rooms list
+      // Wait for the subscription to update, then select the chat
+      setTimeout(() => {
+        const newRoom = chatRooms.find(room => room.id === chatId || room.chatType === 'admin_support');
+        if (newRoom) {
+          setSelectedChat(newRoom);
+        }
+      }, 500);
+    } catch (error) {
       console.error('Error starting new chat:', error);
     }
   };
@@ -539,11 +547,6 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   const handleDeleteChatRoom = async (chatRoomId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the chat
     
-    if (profile?.role !== 'admin') {
-      alert('เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบการสนทนาได้');
-      return;
-    }
-
     if (!confirm('ต้องการลบการสนทนานี้หรือไม่?')) {
       return;
     }
@@ -559,11 +562,6 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   };
 
   const handleDeleteAllChatRooms = async () => {
-    if (profile?.role !== 'admin') {
-      alert('เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบการสนทนาทั้งหมดได้');
-      return;
-    }
-
     if (!confirm(`ต้องการลบการสนทนาทั้งหมด (${chatRooms.length} การสนทนา) หรือไม่?`)) {
       return;
     }
@@ -582,6 +580,9 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       
       // Clear selected chat if it was deleted
       setSelectedChat(null);
+      if (isManageMode) {
+        setIsManageMode(false);
+      }
     } catch (error) {
       console.error('Error deleting all chat rooms:', error);
       alert('ไม่สามารถลบการสนทนาทั้งหมดได้ กรุณาลองใหม่อีกครั้ง');
@@ -669,7 +670,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                     </p>
                     {(filteredChatRooms.length > 0 || searchedSellers.length > 0) && (
                       <span className="text-xs text-gray-500">
-                        กำลังค้นหา: “{searchQuery}”
+                        กำลังค้นหา: "{searchQuery}"
                       </span>
                     )}
                   </div>
@@ -678,21 +679,39 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
 
               {/* New Chat Button */}
               <div className="px-4 py-3 border-b border-gray-200">
-                <button
-                  onClick={handleStartNewChat}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 py-3 rounded-xl hover:brightness-110 transition"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="font-medium">ติดต่อเจ้าหน้าที่</span>
-                </button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <button
+                    onClick={handleStartNewChat}
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 py-3 rounded-xl hover:brightness-110 transition"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="font-medium">ติดต่อเจ้าหน้าที่</span>
+                  </button>
+                  {canManageChats && (
+                    <button
+                      onClick={() => setIsManageMode((prev) => !prev)}
+                      className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition border ${
+                        isManageMode
+                          ? 'bg-rose-500 text-white border-rose-500 hover:bg-rose-600'
+                          : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                      }`}
+                    >
+                      {isManageMode ? 'ยกเลิกการจัดการ' : 'จัดการการสนทนา'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Delete All Chat Rooms Button */}
-              {profile?.role === 'admin' && chatRooms.length > 0 && (
+              {chatRooms.length > 0 && (isAdmin || (canManageChats && isManageMode)) && (
                 <div className="px-4 py-2 border-b border-gray-200">
                   <button
                     onClick={handleDeleteAllChatRooms}
-                    className="w-full flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition text-sm"
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition ${
+                      isAdmin
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-rose-500 text-white hover:bg-rose-600'
+                    }`}
                   >
                     <Trash2 className="h-4 w-4" />
                     <span className="font-medium">ลบการสนทนาทั้งหมด</span>
@@ -779,15 +798,17 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                         </button>
                         
                         {/* Delete Button - Shows on hover */}
-                        {profile?.role === 'admin' && (
-                          <button
-                            onClick={(e) => handleDeleteChatRoom(room.id!, e)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg z-10"
-                            title="ลบการสนทนา"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => handleDeleteChatRoom(room.id!, e)}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity p-2 text-white rounded-full shadow-lg z-10 ${
+                            isManageMode
+                              ? 'opacity-100 bg-rose-500 hover:bg-rose-600'
+                              : 'opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600'
+                          }`}
+                          title="ลบการสนทนา"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     ))}
                     
