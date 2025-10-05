@@ -12,6 +12,17 @@ import {
   type ChatRoom 
 } from '../../services/firebase/chat.service';
 import { MessageCircle, X, Send, Search, User, Shield, Store, Clock } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { firestore } from '@/lib/firebaseClient';
+
+type Seller = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  shopName?: string;
+  role: string;
+};
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -28,6 +39,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [searchedSellers, setSearchedSellers] = useState<Seller[]>([]);
+  const [isSearchingSellers, setIsSearchingSellers] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -68,6 +81,19 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
     }
   }, [selectedChat, firebaseUser]);
 
+  // Search for sellers when user types in search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchSellers(searchQuery);
+      } else {
+        setSearchedSellers([]);
+      }
+    }, 300); // Debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadChatRooms = async () => {
     if (!firebaseUser) return;
     
@@ -83,6 +109,75 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
       console.error('Error loading chat rooms:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const searchSellers = async (searchText: string) => {
+    if (!searchText.trim()) {
+      setSearchedSellers([]);
+      return;
+    }
+    
+    setIsSearchingSellers(true);
+    try {
+      const usersRef = collection(firestore, 'users');
+      const q = query(usersRef, where('role', '==', 'seller'));
+      const snapshot = await getDocs(q);
+      
+      const allSellers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Seller, 'id'>)
+      } as Seller));
+      
+      // Filter sellers by search query
+      const searchLower = searchText.toLowerCase();
+      const filtered = allSellers.filter(seller => {
+        const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+        return (
+          shopName.toLowerCase().includes(searchLower) ||
+          seller.email.toLowerCase().includes(searchLower) ||
+          seller.firstName.toLowerCase().includes(searchLower) ||
+          seller.lastName.toLowerCase().includes(searchLower)
+        );
+      });
+      
+      setSearchedSellers(filtered);
+    } catch (error) {
+      console.error('Error searching sellers:', error);
+    } finally {
+      setIsSearchingSellers(false);
+    }
+  };
+
+  const handleStartChatWithSeller = async (seller: Seller) => {
+    if (!firebaseUser || !profile) return;
+    
+    try {
+      const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+      const chatId = await createChatRoom(
+        'seller_support',
+        firebaseUser.uid,
+        `${profile.firstName} ${profile.lastName}`.trim(),
+        seller.id,
+        shopName
+      );
+      
+      // Reload chat rooms
+      await loadChatRooms();
+      
+      // Wait a bit for the room to be loaded
+      setTimeout(() => {
+        const room = chatRooms.find(r => r.sellerId === seller.id);
+        if (room) {
+          setSelectedChat(room);
+        }
+      }, 500);
+      
+      // Clear search
+      setSearchQuery('');
+      setSearchedSellers([]);
+    } catch (error) {
+      console.error('Error starting chat with seller:', error);
     }
   };
 
@@ -290,13 +385,15 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                   <div className="flex items-center justify-center h-32">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                   </div>
-                ) : filteredChatRooms.length === 0 ? (
+                ) : filteredChatRooms.length === 0 && searchedSellers.length === 0 ? (
                   <div className="text-center text-gray-500 py-12 px-4">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     {searchQuery ? (
                       <>
                         <p className="text-lg font-medium">ไม่พบผลการค้นหา</p>
-                        <p className="text-sm text-gray-400 mt-2">ลองค้นหาด้วยคำอื่น หรือเริ่มการสนทนาใหม่</p>
+                        <p className="text-sm text-gray-400 mt-2">
+                          {isSearchingSellers ? 'กำลังค้นหาร้านค้า...' : 'ลองค้นหาด้วยคำอื่น หรือเริ่มการสนทนาใหม่'}
+                        </p>
                       </>
                     ) : (
                       <>
@@ -306,48 +403,106 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                     )}
                   </div>
                 ) : (
-                  filteredChatRooms.map((room) => (
-                    <button
-                      key={room.id}
-                      onClick={() => setSelectedChat(room)}
-                      className="w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
-                    >
-                      {/* Avatar */}
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center">
-                        {getChatIcon(room)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0 text-left">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {searchQuery ? highlightText(getChatTitle(room), searchQuery) : getChatTitle(room)}
-                          </h3>
-                          <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                            {formatTime(room.lastMessageTime)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 truncate">
-                          {searchQuery && room.lastMessage 
-                            ? highlightText(room.lastMessage, searchQuery)
-                            : (room.lastMessage || 'ยังไม่มีข้อความ')
+                  <>
+                    {/* Existing Chat Rooms */}
+                    {filteredChatRooms.map((room) => (
+                      <button
+                        key={room.id}
+                        onClick={() => {
+                          setSelectedChat(room);
+                          // Mark messages as read immediately when clicking
+                          if (firebaseUser && room.id) {
+                            markMessagesAsRead(room.id, firebaseUser.uid).then(() => {
+                              // Reload chat rooms to update unread count
+                              loadChatRooms();
+                            });
                           }
-                        </p>
-                        {room.status === 'closed' && (
-                          <span className="text-xs text-red-500 mt-1 inline-block">
-                            (ปิดแล้ว)
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Unread Badge */}
-                      {room.unreadCount > 0 && (
-                        <div className="flex-shrink-0 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                          {room.unreadCount > 9 ? '9+' : room.unreadCount}
+                        }}
+                        className="w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
+                      >
+                        {/* Avatar */}
+                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center">
+                          {getChatIcon(room)}
                         </div>
-                      )}
-                    </button>
-                  ))
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-semibold text-gray-900 truncate">
+                              {searchQuery ? highlightText(getChatTitle(room), searchQuery) : getChatTitle(room)}
+                            </h3>
+                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                              {formatTime(room.lastMessageTime)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">
+                            {searchQuery && room.lastMessage 
+                              ? highlightText(room.lastMessage, searchQuery)
+                              : (room.lastMessage || 'ยังไม่มีข้อความ')
+                            }
+                          </p>
+                          {room.status === 'closed' && (
+                            <span className="text-xs text-red-500 mt-1 inline-block">
+                              (ปิดแล้ว)
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Unread Badge */}
+                        {room.unreadCount > 0 && (
+                          <div className="flex-shrink-0 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            {room.unreadCount > 9 ? '9+' : room.unreadCount}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                    
+                    {/* Searched Sellers - Show when searching and there are results */}
+                    {searchQuery && searchedSellers.length > 0 && (
+                      <>
+                        {filteredChatRooms.length > 0 && (
+                          <div className="px-4 py-2 bg-emerald-50 border-y border-emerald-100">
+                            <p className="text-xs font-semibold text-emerald-700 uppercase">ร้านค้าที่พบ</p>
+                          </div>
+                        )}
+                        {searchedSellers.map((seller) => {
+                          const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
+                          return (
+                            <button
+                              key={seller.id}
+                              onClick={() => handleStartChatWithSeller(seller)}
+                              className="w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-emerald-50 transition"
+                            >
+                              {/* Avatar */}
+                              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full flex items-center justify-center">
+                                <Store className="h-5 w-5 text-emerald-600" />
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0 text-left">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h3 className="font-semibold text-gray-900 truncate">
+                                    {highlightText(shopName, searchQuery)}
+                                  </h3>
+                                </div>
+                                <p className="text-sm text-gray-600 truncate">
+                                  คลิกเพื่อเริ่มการสนทนา
+                                </p>
+                                <span className="text-xs text-emerald-600 mt-1 inline-block">
+                                  ร้านค้า
+                                </span>
+                              </div>
+
+                              {/* Arrow indicator */}
+                              <div className="flex-shrink-0 text-gray-400">
+                                <MessageCircle className="h-5 w-5" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             </>
