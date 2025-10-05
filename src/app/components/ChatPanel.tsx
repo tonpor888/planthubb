@@ -538,6 +538,31 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     }
   };
 
+  const handleDeleteAllChatRooms = async () => {
+    if (!confirm(`ต้องการลบการสนทนาทั้งหมด (${chatRooms.length} การสนทนา) หรือไม่?`)) {
+      return;
+    }
+    
+    if (!confirm('การลบนี้ไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่?')) {
+      return;
+    }
+    
+    try {
+      // Delete all chat rooms
+      const deletePromises = chatRooms.map(room => deleteChatRoom(room.id!));
+      await Promise.all(deletePromises);
+      
+      console.log('✅ All chat rooms deleted');
+      alert(`ลบการสนทนาทั้งหมด (${chatRooms.length} การสนทนา) เรียบร้อยแล้ว`);
+      
+      // Clear selected chat if it was deleted
+      setSelectedChat(null);
+    } catch (error) {
+      console.error('Error deleting all chat rooms:', error);
+      alert('ไม่สามารถลบการสนทนาทั้งหมดได้ กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -636,6 +661,19 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                   <span className="font-medium">ติดต่อเจ้าหน้าที่</span>
                 </button>
               </div>
+
+              {/* Delete All Chat Rooms Button */}
+              {chatRooms.length > 0 && (
+                <div className="px-4 py-2 border-b border-gray-200">
+                  <button
+                    onClick={handleDeleteAllChatRooms}
+                    className="w-full flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition text-sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="font-medium">ลบการสนทนาทั้งหมด</span>
+                  </button>
+                </div>
+              )}
 
               {/* Chat List */}
               <div className="flex-1 overflow-y-auto">
