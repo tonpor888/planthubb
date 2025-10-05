@@ -29,7 +29,7 @@ service cloud.firestore {
       allow get: if request.auth != null && (isSelf() || isSellerProfile() || isAdmin());
 
       // Allow querying seller profiles for authenticated users (chat search, product pages)
-      allow list: if request.auth != null && (isAdmin() || isSellerProfile());
+      allow list: if request.auth != null;
     }
     
     // Products collection

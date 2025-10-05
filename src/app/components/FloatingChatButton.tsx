@@ -58,7 +58,7 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
       >
         <MessageCircle className="h-7 w-7" />
         {(totalUnreadCount > 0 || unreadCount > 0) && (
-          <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg">
+          <span className="absolute -right-1 -top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg">
             {Math.max(totalUnreadCount, unreadCount) > 99 ? '99+' : Math.max(totalUnreadCount, unreadCount)}
           </span>
         )}
