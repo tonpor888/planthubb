@@ -16,6 +16,42 @@ export default function LoginContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+  // Block login until Monday - REMOVE THIS ON PRESENTATION DAY
+  const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const isMonday = today === 1;
+  
+  if (!isMonday) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-lime-50 to-white py-16 flex items-center justify-center">
+        <div className="mx-auto max-w-2xl px-4">
+          <div className="rounded-3xl border-4 border-emerald-500 bg-white p-12 shadow-2xl shadow-emerald-500/20 text-center">
+            <div className="mb-6 text-8xl">🌿</div>
+            <h1 className="text-4xl font-bold text-emerald-900 mb-4">
+              ขออภัยในความไม่สะดวก
+            </h1>
+            <p className="text-xl text-slate-600 mb-6">
+              ระบบเข้าสู่ระบบจะเปิดให้บริการในวันจันทร์
+            </p>
+            <div className="bg-emerald-50 rounded-2xl p-6 mb-6">
+              <p className="text-lg font-semibold text-emerald-700">
+                See you on Monday! 👋
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                เรากำลังปรับปรุงระบบเพื่อประสบการณ์ที่ดีขึ้น
+              </p>
+            </div>
+            <Link 
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-8 py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-105"
+            >
+              กลับหน้าแรก
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
