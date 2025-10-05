@@ -14,7 +14,7 @@ import {
   type ChatMessage,
   type ChatRoom 
 } from '../../../services/firebase/chat.service';
-import { MessageCircle, Send, CheckCircle, Clock, AlertCircle, Trash2, Package, User, CreditCard } from 'lucide-react';
+import { MessageCircle, Send, CheckCircle, Clock, AlertCircle, Trash2, Package, User, CreditCard, ArrowLeft } from 'lucide-react';
 
 export default function AdminSellerChatPage() {
   const { firebaseUser, profile } = useAuthContext();
@@ -25,6 +25,7 @@ export default function AdminSellerChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'closed' | 'pending'>('all');
+  const [isMobileView, setIsMobileView] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -35,6 +36,16 @@ export default function AdminSellerChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (firebaseUser && profile?.role === 'admin') {
@@ -191,9 +202,13 @@ export default function AdminSellerChatPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="flex h-[600px]">
+          <div className="flex flex-col md:flex-row h-[calc(100vh-200px)] md:h-[650px]">
             {/* Chat Rooms List */}
-            <div className="w-1/3 border-r border-gray-200 flex flex-col">
+            <div
+              className={`flex flex-col border-gray-200 ${
+                isMobileView ? 'w-full border-b' : 'md:w-1/3 md:border-r'
+              } ${isMobileView && selectedChat ? 'hidden' : ''}`}
+            >
               <div className="p-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">แชทร้านค้า</h2>
                 
@@ -285,19 +300,31 @@ export default function AdminSellerChatPage() {
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 flex flex-col">
+            <div
+              className={`flex-1 flex flex-col ${isMobileView && !selectedChat ? 'hidden' : ''}`}
+            >
               {selectedChat ? (
                 <>
                   {/* Chat Header */}
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {isMobileView && (
+                          <button
+                            onClick={() => setSelectedChat(null)}
+                            className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-medium text-blue-600 shadow md:hidden"
+                          >
+                            <ArrowLeft className="h-4 w-4" /> รายการแชท
+                          </button>
+                        )}
+                        <div>
                         <h3 className="font-semibold text-gray-900">
                           {selectedChat.customerName}
                         </h3>
                         <p className="text-sm text-gray-500">
                           ออเดอร์: {selectedChat.orderId || 'ไม่ระบุ'}
                         </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${

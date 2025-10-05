@@ -231,7 +231,7 @@ export default function LoginContent() {
             <p className="mt-6 text-center text-sm text-slate-500">
               ยังไม่มีบัญชีร้านค้า?
               <Link href="/register" className="ml-1 font-medium text-emerald-600 hover:text-emerald-800">
-                สมัครสมาชิกด้วย Google
+                สมัครเป็นเป็นสมาชิกกับ PlantHub
               </Link>
             </p>
             <p className="mt-3 text-center text-xs text-slate-400">
