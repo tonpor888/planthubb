@@ -257,16 +257,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     try {
       const usersRef = collection(firestore, 'users');
       
-      // For admins and sellers, search all users
-      // For customers, only search sellers
-      let q;
-      if (profile?.role === 'admin' || profile?.role === 'seller') {
-        // Admin and sellers can search all users
-        q = query(usersRef);
-      } else {
-        // Customers can only search sellers
-        q = query(usersRef, where('role', '==', 'seller'));
-      }
+      // Allow all authenticated users to search all users (shops, sellers, customers)
+      const q = query(usersRef);
       
       const snapshot = await getDocs(q);
       
@@ -391,8 +383,14 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       // Clear search
       setSearchQuery('');
       setSearchedSellers([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting chat with seller:', error);
+      console.error('Error details:', {
+        code: error?.code,
+        message: error?.message,
+        name: error?.name
+      });
+      alert(`ไม่สามารถเริ่มการสนทนาได้: ${error?.message || 'กรุณาลองอีกครั้ง'}`);
     }
   };
 
