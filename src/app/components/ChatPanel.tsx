@@ -869,27 +869,27 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                     }
 
                     // Regular messages
-                    const isCustomer = message.senderRole === 'customer';
+                    const isOwnMessage = firebaseUser?.uid === message.senderId;
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
                           className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                            isCustomer
+                            isOwnMessage
                               ? 'bg-blue-500 text-white'
                               : 'bg-white text-gray-800 border border-gray-200'
                           }`}
                         >
-                          {!isCustomer && (
+                          {!isOwnMessage && (
                             <div className="text-xs font-medium mb-1 text-gray-600">
                               {message.senderRole === 'admin' ? 'แอดมิน' : message.senderName}
                             </div>
                           )}
                           <div className="text-sm break-words">{message.message}</div>
                           <div className={`text-xs mt-1 ${
-                            isCustomer ? 'text-white/70' : 'text-gray-500'
+                            isOwnMessage ? 'text-white/70' : 'text-gray-500'
                           }`}>
                             {message.timestamp.toLocaleTimeString('th-TH', { 
                               hour: '2-digit', 
