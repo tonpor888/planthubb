@@ -68,62 +68,70 @@ export async function createChatRoom(
   sellerName?: string,
   orderId?: string
 ): Promise<string> {
-  // Check if chat room already exists
-  const chatRoomsRef = collection(firestore, CHAT_ROOMS_COLLECTION);
-  let existingRoomQuery;
-  
-  if (chatType === 'admin_support') {
-    // For admin support, check if customer already has an active admin chat
-    existingRoomQuery = query(
-      chatRoomsRef,
-      where('chatType', '==', 'admin_support'),
-      where('customerId', '==', customerId),
-      where('status', '==', 'active')
-    );
-  } else if (chatType === 'seller_support' && sellerId) {
-    // For seller support, check if customer already has a chat with this specific seller
-    existingRoomQuery = query(
-      chatRoomsRef,
-      where('chatType', '==', 'seller_support'),
-      where('customerId', '==', customerId),
-      where('sellerId', '==', sellerId),
-      where('status', '==', 'active')
-    );
-  }
-  
-  if (existingRoomQuery) {
-    const existingSnapshot = await getDocs(existingRoomQuery);
-    if (!existingSnapshot.empty) {
-      // Return existing chat room ID
-      console.log('♻️ Reusing existing chat room:', existingSnapshot.docs[0].id);
-      return existingSnapshot.docs[0].id;
+  try {
+    console.log('🔄 Creating/finding chat room...', { chatType, customerId, sellerId });
+    
+    // Check if chat room already exists
+    const chatRoomsRef = collection(firestore, CHAT_ROOMS_COLLECTION);
+    let existingRoomQuery;
+    
+    if (chatType === 'admin_support') {
+      // For admin support, check if customer already has an active admin chat
+      existingRoomQuery = query(
+        chatRoomsRef,
+        where('chatType', '==', 'admin_support'),
+        where('customerId', '==', customerId),
+        where('status', '==', 'active')
+      );
+    } else if (chatType === 'seller_support' && sellerId) {
+      // For seller support, check if customer already has a chat with this specific seller
+      existingRoomQuery = query(
+        chatRoomsRef,
+        where('chatType', '==', 'seller_support'),
+        where('customerId', '==', customerId),
+        where('sellerId', '==', sellerId),
+        where('status', '==', 'active')
+      );
     }
-  }
-  
-  // Create new chat room if none exists
-  console.log('✨ Creating new chat room');
-  const chatRoomData = {
-    chatType,
-    customerId,
-    customerName,
-    sellerId: sellerId || null,
-    sellerName: sellerName || null,
-    orderId: orderId || null,
-    status: 'active' as const,
-    unreadCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
+    
+    if (existingRoomQuery) {
+      const existingSnapshot = await getDocs(existingRoomQuery);
+      if (!existingSnapshot.empty) {
+        // Return existing chat room ID
+        console.log('♻️ Reusing existing chat room:', existingSnapshot.docs[0].id);
+        return existingSnapshot.docs[0].id;
+      }
+    }
+    
+    // Create new chat room if none exists
+    console.log('✨ Creating new chat room');
+    const chatRoomData = {
+      chatType,
+      customerId,
+      customerName,
+      sellerId: sellerId || null,
+      sellerName: sellerName || null,
+      orderId: orderId || null,
+      status: 'active' as const,
+      unreadCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
 
-  const docRef = await addDoc(collection(firestore, CHAT_ROOMS_COLLECTION), chatRoomData);
-  
-  // สร้างประวัติแชท
-  await createOrUpdateChatHistory(customerId, customerName, 'customer', docRef.id);
-  if (sellerId) {
-    await createOrUpdateChatHistory(sellerId, sellerName!, 'seller', docRef.id);
+    const docRef = await addDoc(collection(firestore, CHAT_ROOMS_COLLECTION), chatRoomData);
+    console.log('✅ Chat room created successfully:', docRef.id);
+    
+    // สร้างประวัติแชท
+    await createOrUpdateChatHistory(customerId, customerName, 'customer', docRef.id);
+    if (sellerId) {
+      await createOrUpdateChatHistory(sellerId, sellerName!, 'seller', docRef.id);
+    }
+    
+    return docRef.id;
+  } catch (error: any) {
+    console.error('❌ Error creating chat room:', error);
+    throw new Error(`ไม่สามารถสร้างห้องแชทได้: ${error.message}`);
   }
-  
-  return docRef.id;
 }
 
 // ส่งข้อความ

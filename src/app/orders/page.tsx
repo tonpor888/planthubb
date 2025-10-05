@@ -101,19 +101,26 @@ export default function OrdersPage() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const orderData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        })) as Order[];
+        console.log('📦 Orders updated! Total orders:', snapshot.docs.length);
+        
+        const orderData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log(`   Order ${doc.id.slice(-8)}: status = ${data.status}, updatedAt = ${data.updatedAt?.toDate()}`);
+          
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          };
+        }) as Order[];
         
         setOrders(orderData);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.error("Error fetching orders:", err);
+        console.error("❌ Error fetching orders:", err);
         setError("ไม่สามารถดึงข้อมูลคำสั่งซื้อได้");
         setLoading(false);
       }
@@ -123,10 +130,35 @@ export default function OrdersPage() {
   }, [firebaseUser]);
 
   const summary = useMemo(() => {
-    const classified: Record<string, number> = {};
+    const classified: Record<string, number> = {
+      pending: 0,
+      awaiting_payment: 0,
+      paid: 0,
+      processing: 0,
+      shipping: 0,
+      completed: 0,
+    };
+    
     orders.forEach((order) => {
-      classified[order.status] = (classified[order.status] ?? 0) + 1;
+      const status = order.status;
+      
+      // Map similar statuses together
+      if (status === 'pending' || status === 'confirmed') {
+        classified.pending += 1;
+      } else if (status === 'awaiting_payment') {
+        classified.awaiting_payment += 1;
+      } else if (status === 'paid') {
+        classified.paid += 1;
+      } else if (status === 'processing') {
+        classified.processing += 1;
+      } else if (status === 'shipped' || status === 'shipping') {
+        classified.shipping += 1;
+      } else if (status === 'delivered' || status === 'completed') {
+        classified.completed += 1;
+      }
     });
+    
+    console.log('📊 Order summary:', classified);
     return classified;
   }, [orders]);
 

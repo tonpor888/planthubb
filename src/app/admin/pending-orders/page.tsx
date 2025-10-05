@@ -54,6 +54,7 @@ export default function PendingOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.role !== "admin") {
@@ -61,25 +62,46 @@ export default function PendingOrdersPage() {
       return;
     }
 
-    const ordersRef = collection(firestore, "orders");
-    const unsubscribe = onSnapshot(ordersRef, (snapshot) => {
-      const orderData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-      })) as Order[];
-      
-      // กรองเฉพาะออเดอร์ที่รอการอนุมัติ
-      const pendingOrders = orderData.filter(order => 
-        order.status === 'pending' || order.status === 'paid'
+    try {
+      const ordersRef = collection(firestore, "orders");
+      const unsubscribe = onSnapshot(
+        ordersRef, 
+        (snapshot) => {
+          console.log('📦 Pending orders loaded:', snapshot.docs.length);
+          
+          const orderData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              updatedAt: data.updatedAt?.toDate?.() || new Date(),
+            };
+          }) as Order[];
+          
+          // กรองเฉพาะออเดอร์ที่รอการอนุมัติ
+          const pendingOrders = orderData.filter(order => 
+            order.status === 'pending' || order.status === 'paid'
+          );
+          
+          console.log('⏳ Filtered pending orders:', pendingOrders.length);
+          setOrders(pendingOrders);
+          setLoading(false);
+          setError(null);
+        },
+        (err) => {
+          console.error("❌ Error fetching pending orders:", err);
+          setError(`เกิดข้อผิดพลาด: ${err.message}`);
+          setLoading(false);
+        }
       );
-      
-      setOrders(pendingOrders);
-      setLoading(false);
-    });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err: any) {
+      console.error("❌ Error setting up listener:", err);
+      setError(`ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ${err.message}`);
+      setLoading(false);
+    }
   }, [profile, router]);
 
   const filteredOrders = orders.filter(order => {
@@ -127,6 +149,24 @@ export default function PendingOrdersPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto"></div>
           <p className="mt-4 text-slate-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">เกิดข้อผิดพลาด</h2>
+          <p className="text-slate-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+          >
+            ลองใหม่
+          </button>
         </div>
       </div>
     );
