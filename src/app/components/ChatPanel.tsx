@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthContext } from '../providers/AuthProvider';
 import { 
   getUserChatRooms,
@@ -13,7 +13,7 @@ import {
   type ChatMessage,
   type ChatRoom 
 } from '../../services/firebase/chat.service';
-import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2 } from 'lucide-react';
+import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
 import { chatTrigger } from '../hooks/useChatTrigger';
@@ -54,11 +54,39 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const isAdmin = profile?.role === 'admin';
-  const canManageChats = !!profile && !isAdmin;
+  const isSeller = profile?.role === 'seller';
+  const manageAvailable = !!profile;
+  const manageLabel = isAdmin
+    ? 'จัดการห้องแชท'
+    : isSeller
+      ? 'จัดการแชทร้าน'
+      : 'จัดการสนทนา';
+  const manageSubtitle = isAdmin
+    ? 'ล้างแชทเก่าออกจากมุมมองของคุณ'
+    : isSeller
+      ? 'ลบแชทที่ปิดงานแล้วเพื่อจัดระเบียบกล่องข้อความ'
+      : 'ลบห้องแชทที่ไม่ต้องการออกจากรายการ';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const clearUnreadForChat = useCallback((chatId: string | undefined | null) => {
+    if (!chatId) {
+      return;
+    }
+
+    setChatRooms((previousRooms) =>
+      previousRooms.map((room) =>
+        room.id === chatId
+          ? {
+              ...room,
+              unreadCount: 0,
+            }
+          : room
+      )
+    );
+  }, []);
 
   // Consolidate multiple admin support chats into one per customer
   const consolidateAdminChats = (rooms: ChatRoom[]): ChatRoom[] => {
@@ -220,9 +248,11 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   // Subscribe to messages when chat is selected
   useEffect(() => {
     if (selectedChat && firebaseUser) {
+      clearUnreadForChat(selectedChat.id!);
       const unsubscribe = subscribeToChatMessages(selectedChat.id!, (newMessages) => {
         setMessages(newMessages);
         markMessagesAsRead(selectedChat.id!, firebaseUser.uid);
+        clearUnreadForChat(selectedChat.id!);
         
         // Real-time subscription will automatically update unread count
         // No need to manually reload chat rooms
@@ -237,7 +267,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         }
       };
     }
-  }, [selectedChat, firebaseUser]);
+  }, [selectedChat, firebaseUser, clearUnreadForChat]);
 
   // Search for sellers when user types in search
   useEffect(() => {
@@ -401,6 +431,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         if (room) {
           console.log('✅ Found and selecting chat room:', room.id);
           setSelectedChat(room);
+          clearUnreadForChat(room.id!);
         }
       }, 500);
       
@@ -434,6 +465,9 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         const newRoom = chatRooms.find(room => room.id === chatId || room.chatType === 'admin_support');
         if (newRoom) {
           setSelectedChat(newRoom);
+          if (newRoom.id) {
+            clearUnreadForChat(newRoom.id);
+          }
         }
       }, 500);
     } catch (error) {
@@ -489,6 +523,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       room.lastMessage?.toLowerCase().includes(searchLower)
     );
   });
+
+  const selectedChatId = selectedChat?.id ?? null;
 
   const getChatIcon = (room: ChatRoom) => {
     if (room.chatType === 'admin_support') {
@@ -677,47 +713,63 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                 )}
               </div>
 
-              {/* New Chat Button */}
-              <div className="px-4 py-3 border-b border-gray-200">
+              {/* Quick Actions */}
+              <div className="px-4 py-3 border-b border-gray-200 space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <button
                     onClick={handleStartNewChat}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 py-3 rounded-xl hover:brightness-110 transition"
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 text-white px-4 py-3 rounded-xl shadow-sm hover:brightness-110 transition"
                   >
                     <MessageCircle className="h-5 w-5" />
                     <span className="font-medium">ติดต่อเจ้าหน้าที่</span>
                   </button>
-                  {canManageChats && (
+                  {manageAvailable && (
                     <button
                       onClick={() => setIsManageMode((prev) => !prev)}
-                      className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition border ${
+                      className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition shadow-sm border ${
                         isManageMode
-                          ? 'bg-rose-500 text-white border-rose-500 hover:bg-rose-600'
+                          ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 text-white border-transparent hover:brightness-110'
                           : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50'
                       }`}
                     >
-                      {isManageMode ? 'ยกเลิกการจัดการ' : 'จัดการการสนทนา'}
+                      {isManageMode ? 'ปิดโหมดจัดการ' : manageLabel}
                     </button>
                   )}
                 </div>
-              </div>
 
-              {/* Delete All Chat Rooms Button */}
-              {chatRooms.length > 0 && (isAdmin || (canManageChats && isManageMode)) && (
-                <div className="px-4 py-2 border-b border-gray-200">
+                {manageAvailable && !isManageMode && (
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    <span>เปิด {manageLabel} เพื่อเคลียร์การสนทนาที่ไม่ต้องการ</span>
+                  </div>
+                )}
+
+                {manageAvailable && isManageMode && (
+                  <div className="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-500/95 via-orange-400/90 to-amber-400/90 p-4 text-white shadow-lg">
+                    <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/20 blur-3xl" />
+                    <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
+                    <div className="relative z-10 flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/25 shadow-inner">
+                        <Sparkles className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold tracking-wide">โหมด {manageLabel} เปิดใช้งาน</p>
+                        <p className="text-xs text-white/85 leading-relaxed">{manageSubtitle}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {chatRooms.length > 0 && manageAvailable && isManageMode && (
                   <button
                     onClick={handleDeleteAllChatRooms}
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition ${
-                      isAdmin
-                        ? 'bg-red-500 text-white hover:bg-red-600'
-                        : 'bg-rose-500 text-white hover:bg-rose-600'
-                    }`}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 via-red-500 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-110 transition"
                   >
                     <Trash2 className="h-4 w-4" />
-                    <span className="font-medium">ลบการสนทนาทั้งหมด</span>
+                    <span>ลบการสนทนาทั้งหมด</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Chat List */}
               <div className="flex-1 overflow-y-auto">
@@ -745,17 +797,26 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                 ) : (
                   <>
                     {/* Existing Chat Rooms */}
-                    {filteredChatRooms.map((room) => (
-                      <div
-                        key={room.id}
-                        className="relative group w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
-                      >
+                    {filteredChatRooms.map((room: ChatRoom) => {
+                      const isSelectedRoom = selectedChatId === room.id;
+                      const rowTone = isManageMode
+                        ? 'border-rose-200/70 bg-rose-50/70 hover:bg-rose-100'
+                        : isSelectedRoom
+                          ? 'border-blue-200 bg-blue-50'
+                          : 'border-gray-100 hover:bg-blue-50';
+
+                      return (
+                        <div
+                          key={room.id}
+                          className={`relative group w-full flex items-start gap-3 p-4 border-b transition shadow-sm ${rowTone}`}
+                        >
                         <button
                           onClick={() => {
                             setSelectedChat(room);
                             // Mark messages as read immediately when clicking
                             if (firebaseUser && room.id) {
                               markMessagesAsRead(room.id, firebaseUser.uid);
+                              clearUnreadForChat(room.id);
                               // Real-time subscription will automatically update unread count
                             }
                           }}
@@ -797,20 +858,21 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                           )}
                         </button>
                         
-                        {/* Delete Button - Shows on hover */}
-                        <button
-                          onClick={(e) => handleDeleteChatRoom(room.id!, e)}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity p-2 text-white rounded-full shadow-lg z-10 ${
-                            isManageMode
-                              ? 'opacity-100 bg-rose-500 hover:bg-rose-600'
-                              : 'opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600'
-                          }`}
-                          title="ลบการสนทนา"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
+                          {/* Delete Button - Shows on hover */}
+                          <button
+                            onClick={(e) => handleDeleteChatRoom(room.id!, e)}
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity p-2 text-white rounded-full shadow-lg z-10 ${
+                              isManageMode
+                                ? 'opacity-100 bg-rose-500 hover:bg-rose-600'
+                                : 'opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600'
+                            }`}
+                            title="ลบการสนทนา"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
                     
                     {/* Searched Sellers - Show when searching and there are results */}
                     {(() => {
