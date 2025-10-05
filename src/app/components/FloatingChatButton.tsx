@@ -16,6 +16,19 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    const unsubscribe = chatTrigger.subscribe((payload) => {
+      console.log('🎯 FloatingChatButton received chat trigger:', payload);
+      setIsChatOpen(true);
+    });
+
+    return unsubscribe;
+  }, [profile]);
+
   // Only show for authenticated users (customers, sellers, admins)
   if (!profile) {
     return null;
@@ -36,17 +49,6 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
   const handleCloseChat = () => {
     setIsChatOpen(false);
   };
-
-  // Listen for global chat triggers to open chat panel
-  useEffect(() => {
-    const unsubscribe = chatTrigger.subscribe((payload) => {
-      console.log('🎯 FloatingChatButton received chat trigger:', payload);
-      setIsChatOpen(true);
-    });
-
-    return unsubscribe;
-  }, []);
-
   return (
     <>
       <button
