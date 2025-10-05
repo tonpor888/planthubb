@@ -17,9 +17,9 @@ import { MessageCircle, X, Send, Package, User, MapPin, CreditCard } from 'lucid
 interface OrderSummary {
   id: string;
   status: string;
-  status_th: string;
+  status_th?: string;
   paymentMethod: string;
-  paymentMethod_th: string;
+  paymentMethod_th?: string;
   total: number;
   updatedAt: Date | null;
   items?: Array<{
@@ -29,12 +29,30 @@ interface OrderSummary {
     quantity: number;
     image: string;
   }>;
-  sellerId: string;
+  sellerId?: string;
 }
 
 interface SellerChatWindowProps {
   order: OrderSummary | null;
   onClose: () => void;
+}
+
+// Helper function for status translation
+function statusToThai(status: string) {
+  const map: Record<string, string> = {
+    pending: "รอการยืนยัน",
+    confirmed: "ยืนยันแล้ว",
+    awaiting_payment: "รอชำระเงิน",
+    paid: "ชำระแล้ว",
+    processing: "กำลังแพ็คสินค้า",
+    shipped: "กำลังจัดส่ง",
+    shipping: "กำลังจัดส่ง",
+    delivered: "จัดส่งสำเร็จ",
+    completed: "จัดส่งสำเร็จ",
+    cancelled: "ยกเลิก",
+    refunded: "คืนเงินแล้ว",
+  };
+  return map[status] ?? status;
 }
 
 export default function SellerChatWindow({ order, onClose }: SellerChatWindowProps) {
@@ -209,7 +227,7 @@ export default function SellerChatWindow({ order, onClose }: SellerChatWindowPro
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="font-medium">สถานะ:</span>
-              <span className="text-gray-600">{order.status_th}</span>
+              <span className="text-gray-600">{order.status_th || statusToThai(order.status)}</span>
             </div>
           </div>
         </div>

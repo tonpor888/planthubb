@@ -3,20 +3,86 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Package, Truck, BadgeDollarSign, FileDown, Undo2, Loader2, CalendarCheck, DollarSign, PackageCheck, ArrowLeft, Search, MessageCircle } from "lucide-react";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 
 import { useAuthContext } from "../providers/AuthProvider";
-import { fetchOrdersForUser } from "../../services/firebase/ordersQuery.service";
+import { firestore } from "@/lib/firebaseClient";
 import SellerChatWindow from "../components/SellerChatWindow";
 
-type OrderSummary = Awaited<ReturnType<typeof fetchOrdersForUser>>[number];
+type OrderItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+};
+
+type Order = {
+  id: string;
+  buyerId: string;
+  status: string;
+  paymentMethod: string;
+  total: number;
+  subtotal: number;
+  discountAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  items: OrderItem[];
+  sellerId?: string;
+};
+
+// Helper functions for Thai translations
+function statusToThai(status: string) {
+  const map: Record<string, string> = {
+    pending: "รอการยืนยัน",
+    confirmed: "ยืนยันแล้ว",
+    awaiting_payment: "รอชำระเงิน",
+    paid: "ชำระแล้ว",
+    processing: "กำลังแพ็คสินค้า",
+    shipped: "กำลังจัดส่ง",
+    shipping: "กำลังจัดส่ง",
+    delivered: "จัดส่งสำเร็จ",
+    completed: "จัดส่งสำเร็จ",
+    cancelled: "ยกเลิก",
+    refunded: "คืนเงินแล้ว",
+  };
+  return map[status] ?? status;
+}
+
+function paymentMethodToThai(method: string) {
+  const map: Record<string, string> = {
+    cod: "เก็บเงินปลายทาง",
+    credit: "บัตรเครดิต/เดบิต",
+    promptpay: "พร้อมเพย์",
+    bank_transfer: "โอนผ่านธนาคาร",
+  };
+  return map[method] ?? method;
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'pending': return 'bg-amber-100 text-amber-700';
+    case 'confirmed': return 'bg-blue-100 text-blue-700';
+    case 'awaiting_payment': return 'bg-rose-100 text-rose-700';
+    case 'paid': return 'bg-emerald-100 text-emerald-700';
+    case 'processing': return 'bg-sky-100 text-sky-700';
+    case 'shipped':
+    case 'shipping': return 'bg-indigo-100 text-indigo-700';
+    case 'delivered':
+    case 'completed': return 'bg-lime-100 text-lime-700';
+    case 'cancelled': return 'bg-gray-100 text-gray-700';
+    case 'refunded': return 'bg-purple-100 text-purple-700';
+    default: return 'bg-slate-100 text-slate-700';
+  }
+}
 
 export default function OrdersPage() {
   const { firebaseUser } = useAuthContext();
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOrderForChat, setSelectedOrderForChat] = useState<OrderSummary | null>(null);
+  const [selectedOrderForChat, setSelectedOrderForChat] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!firebaseUser) {
@@ -24,20 +90,36 @@ export default function OrdersPage() {
       return;
     }
 
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await fetchOrdersForUser(firebaseUser.uid);
-        setOrders(result);
-      } catch (err: any) {
-        setError(err?.message ?? "ไม่สามารถดึงข้อมูลคำสั่งซื้อได้");
-      } finally {
+    const ordersRef = collection(firestore, "orders");
+    const q = query(
+      ordersRef,
+      where("buyerId", "==", firebaseUser.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    // Use onSnapshot for real-time updates
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const orderData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate() || new Date(),
+          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+        })) as Order[];
+        
+        setOrders(orderData);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("Error fetching orders:", err);
+        setError("ไม่สามารถดึงข้อมูลคำสั่งซื้อได้");
         setLoading(false);
       }
-    };
+    );
 
-    run();
+    return () => unsubscribe();
   }, [firebaseUser]);
 
   const summary = useMemo(() => {
@@ -163,11 +245,13 @@ export default function OrdersPage() {
                   <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
                     <div>
                       <p className="text-xs uppercase tracking-widest text-slate-400">สถานะปัจจุบัน</p>
-                      <p className="mt-1 capitalize">{order.status_th}</p>
+                      <div className={`mt-1 inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                        {statusToThai(order.status)}
+                      </div>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-widest text-slate-400">ชำระผ่าน</p>
-                      <p className="mt-1">{order.paymentMethod_th}</p>
+                      <p className="mt-1">{paymentMethodToThai(order.paymentMethod)}</p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-widest text-slate-400">อัปเดตล่าสุด</p>

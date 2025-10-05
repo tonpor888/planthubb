@@ -44,6 +44,8 @@ export default function ProfilePage() {
     lastName: "",
     phone: "",
     address: "",
+    shopName: "",
+    shopDescription: "",
   });
   const [loading, setLoading] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
@@ -68,6 +70,8 @@ export default function ProfilePage() {
         lastName: profile.lastName || "",
         phone: profile.phone || "",
         address: profile.address || "",
+        shopName: (profile as any).shopName || "",
+        shopDescription: (profile as any).shopDescription || "",
       });
       setImageUrl(profile.profileImage || "");
       setSavedAddresses((profile as any).savedAddresses || []);
@@ -368,6 +372,54 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
+
+              {/* Shop Name - Only for sellers */}
+              {(profile.role === 'seller' || profile.role === 'admin') && (
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 flex-shrink-0">
+                    <StoreIcon className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-slate-500">ชื่อร้านค้า</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={formData.shopName}
+                        onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                        placeholder="กรุณาระบุชื่อร้านค้า"
+                        className="mt-1 w-full rounded-lg border-2 border-emerald-200 px-4 py-2 text-base font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                    ) : (
+                      <p className="text-base font-semibold text-slate-900 mt-1">{(profile as any).shopName || "ยังไม่ได้ระบุ"}</p>
+                    )}
+                    <p className="text-xs text-slate-500 mt-1">ชื่อนี้จะแสดงในการค้นหาและหน้าสินค้า</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Shop Description - Only for sellers */}
+              {(profile.role === 'seller' || profile.role === 'admin') && (
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 flex-shrink-0">
+                    <StoreIcon className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-slate-500">คำอธิบายร้านค้า</label>
+                    {isEditing ? (
+                      <textarea
+                        value={formData.shopDescription}
+                        onChange={(e) => setFormData({ ...formData, shopDescription: e.target.value })}
+                        placeholder="บอกเล่าเกี่ยวกับร้านค้าของคุณ"
+                        rows={3}
+                        className="mt-1 w-full rounded-lg border-2 border-emerald-200 px-4 py-2 text-base font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                    ) : (
+                      <p className="text-base font-semibold text-slate-900 mt-1 whitespace-pre-line">{(profile as any).shopDescription || "ยังไม่ได้ระบุ"}</p>
+                    )}
+                    <p className="text-xs text-slate-500 mt-1">อธิบายเกี่ยวกับร้านและสินค้าของคุณ</p>
+                  </div>
+                </div>
+              )}
 
               {/* Profile Image URL (for editing) */}
               {isEditing && (

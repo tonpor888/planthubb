@@ -5,6 +5,7 @@ import { useAuthContext } from '../providers/AuthProvider';
 import { 
   getUserChatRooms,
   subscribeToChatMessages,
+  subscribeToChatRooms,
   sendMessage,
   markMessagesAsRead,
   createChatRoom,
@@ -52,10 +53,28 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
     scrollToBottom();
   }, [messages]);
 
-  // Load chat rooms
+  // Load chat rooms with real-time updates
   useEffect(() => {
     if (isOpen && firebaseUser) {
-      loadChatRooms();
+      const unsubscribe = subscribeToChatRooms(
+        firebaseUser.uid,
+        'customer',
+        (rooms: ChatRoom[]) => {
+          setChatRooms(rooms);
+          
+          // Calculate and update unread count
+          const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+          onUnreadCountChange?.(total);
+          
+          setIsLoading(false);
+        }
+      );
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     }
   }, [isOpen, firebaseUser]);
 
@@ -66,8 +85,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
         setMessages(newMessages);
         markMessagesAsRead(selectedChat.id!, firebaseUser.uid);
         
-        // Reload chat rooms to update unread count
-        loadChatRooms();
+        // Real-time subscription will automatically update unread count
+        // No need to manually reload chat rooms
       });
       
       unsubscribeRef.current = unsubscribe;
@@ -166,12 +185,10 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
         shopName
       );
       
-      // Reload chat rooms
-      await loadChatRooms();
-      
-      // Wait a bit for the room to be loaded
+      // Real-time subscription will automatically update the chat rooms list
+      // Wait a bit for the room to be loaded via subscription
       setTimeout(() => {
-        const room = chatRooms.find(r => r.sellerId === seller.id);
+        const room = chatRooms.find(r => r.sellerId === seller.id || r.id === chatId);
         if (room) {
           setSelectedChat(room);
         }
@@ -195,14 +212,14 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
         `${profile.firstName} ${profile.lastName}`.trim()
       );
       
-      // Reload chat rooms
-      await loadChatRooms();
-      
-      // Select the new chat
-      const newRoom = chatRooms.find(room => room.id === chatId);
-      if (newRoom) {
-        setSelectedChat(newRoom);
-      }
+      // Real-time subscription will automatically update the chat rooms list
+      // Wait for the subscription to update, then select the chat
+      setTimeout(() => {
+        const newRoom = chatRooms.find(room => room.id === chatId || room.chatType === 'admin_support');
+        if (newRoom) {
+          setSelectedChat(newRoom);
+        }
+      }, 500);
     } catch (error) {
       console.error('Error starting new chat:', error);
     }
@@ -422,10 +439,8 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
                           setSelectedChat(room);
                           // Mark messages as read immediately when clicking
                           if (firebaseUser && room.id) {
-                            markMessagesAsRead(room.id, firebaseUser.uid).then(() => {
-                              // Reload chat rooms to update unread count
-                              loadChatRooms();
-                            });
+                            markMessagesAsRead(room.id, firebaseUser.uid);
+                            // Real-time subscription will automatically update unread count
                           }
                         }}
                         className="w-full flex items-start gap-3 p-4 border-b border-gray-100 hover:bg-blue-50 transition"
