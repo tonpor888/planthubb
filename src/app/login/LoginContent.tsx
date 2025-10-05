@@ -22,6 +22,7 @@ export default function LoginContent() {
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
   const isMonday = today === 1;
   
+  
   const handleUnlock = () => {
     if (unlockPassword === "planthub12345") {
       setIsUnlocked(true);
