@@ -9,12 +9,17 @@ import { chatTrigger } from '../hooks/useChatTrigger';
 interface FloatingChatButtonProps {
   onClick?: () => void;
   unreadCount?: number;
+  onUnreadUpdate?: (count: number) => void;
 }
 
-export default function FloatingChatButton({ onClick, unreadCount = 0 }: FloatingChatButtonProps) {
+export default function FloatingChatButton({ onClick, unreadCount = 0, onUnreadUpdate }: FloatingChatButtonProps) {
   const { profile } = useAuthContext();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+
+  useEffect(() => {
+    setTotalUnreadCount(unreadCount);
+  }, [unreadCount]);
 
   useEffect(() => {
     if (!profile) {
@@ -44,6 +49,7 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
 
   const handleUnreadCountChange = (count: number) => {
     setTotalUnreadCount(count);
+    onUnreadUpdate?.(count);
   };
 
   const handleCloseChat = () => {
@@ -57,9 +63,9 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
         aria-label="Chat Support"
       >
         <MessageCircle className="h-7 w-7" />
-        {(totalUnreadCount > 0 || unreadCount > 0) && (
+        {totalUnreadCount > 0 && (
           <span className="absolute -right-1 -top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg">
-            {Math.max(totalUnreadCount, unreadCount) > 99 ? '99+' : Math.max(totalUnreadCount, unreadCount)}
+            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
           </span>
         )}
       </button>

@@ -497,6 +497,7 @@ export function Header() {
       <FloatingChatButton 
         onClick={() => setIsChatOpen(true)} 
         unreadCount={unreadCount}
+        onUnreadUpdate={setUnreadCount}
       />
       
       {/* Chat Panel Component */}

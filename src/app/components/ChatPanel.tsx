@@ -52,6 +52,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
   const [isManageMode, setIsManageMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const clearedChatIdsRef = useRef<Set<string>>(new Set());
 
   const isAdmin = profile?.role === 'admin';
   const isSeller = profile?.role === 'seller';
@@ -76,6 +77,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       return;
     }
 
+    clearedChatIdsRef.current.add(chatId);
     setChatRooms((previousRooms) => {
       let changed = false;
       const updatedRooms = previousRooms.map((room) => {
@@ -224,16 +226,37 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
             processedRooms = rooms.filter((room) => room.customerId === firebaseUser.uid);
           }
 
-          setChatRooms(processedRooms);
+          const clearedSet = clearedChatIdsRef.current;
+          const normalizedRooms = processedRooms.map((room) => {
+            if (!room.id) {
+              return room;
+            }
+
+            const serverUnread = room.unreadCount || 0;
+            if (serverUnread > 0) {
+              if (clearedSet.has(room.id)) {
+                clearedSet.delete(room.id);
+              }
+              return room;
+            }
+
+            if (clearedSet.has(room.id)) {
+              return { ...room, unreadCount: 0 };
+            }
+
+            return room;
+          });
+
+          setChatRooms(normalizedRooms);
           setSelectedChat((previous) => {
             if (!previous) {
               return previous;
             }
-            return processedRooms.some((room) => room.id === previous.id) ? previous : null;
+            return normalizedRooms.some((room) => room.id === previous.id) ? previous : null;
           });
           
           // Calculate and update unread count
-          const total = processedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+          const total = normalizedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
           console.log('🔔 ChatPanel: Total unread:', total);
           onUnreadCountChange?.(total);
           if (!processedRooms.length) {
@@ -596,6 +619,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     
     try {
       clearUnreadForChat(chatRoomId);
+      clearedChatIdsRef.current.delete(chatRoomId);
       await deleteChatRoom(chatRoomId);
       console.log('✅ Chat room deleted');
       // The real-time subscription will automatically update the list
@@ -627,6 +651,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       if (isManageMode) {
         setIsManageMode(false);
       }
+      clearedChatIdsRef.current.clear();
       onUnreadCountChange?.(0);
     } catch (error) {
       console.error('Error deleting all chat rooms:', error);
