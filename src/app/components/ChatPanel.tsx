@@ -55,15 +55,27 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
 
   // Load chat rooms with real-time updates
   useEffect(() => {
-    if (isOpen && firebaseUser) {
+    if (isOpen && firebaseUser && profile) {
+      // Determine user role for chat subscription
+      let userRole: 'customer' | 'seller' | 'admin' = 'customer';
+      if (profile.role === 'admin') {
+        userRole = 'admin';
+      } else if (profile.role === 'seller') {
+        userRole = 'seller';
+      }
+
+      console.log('💬 ChatPanel: Setting up subscription for:', firebaseUser.uid, 'role:', userRole);
+
       const unsubscribe = subscribeToChatRooms(
         firebaseUser.uid,
-        'customer',
+        userRole,
         (rooms: ChatRoom[]) => {
+          console.log('📬 ChatPanel: Received', rooms.length, 'chat rooms');
           setChatRooms(rooms);
           
           // Calculate and update unread count
           const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+          console.log('🔔 ChatPanel: Total unread:', total);
           onUnreadCountChange?.(total);
           
           setIsLoading(false);
@@ -76,7 +88,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: Chat
         }
       };
     }
-  }, [isOpen, firebaseUser]);
+  }, [isOpen, firebaseUser, profile]);
 
   // Subscribe to messages when chat is selected
   useEffect(() => {

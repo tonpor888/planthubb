@@ -40,17 +40,28 @@ export function Header() {
   
   // Load unread message count with real-time updates
   useEffect(() => {
-    if (!firebaseUser) {
+    if (!firebaseUser || !profile) {
       setUnreadCount(0);
       return;
     }
 
+    // Determine user role for chat subscription
+    let userRole: 'customer' | 'seller' | 'admin' = 'customer';
+    if (profile.role === 'admin') {
+      userRole = 'admin';
+    } else if (profile.role === 'seller') {
+      userRole = 'seller';
+    }
+
+    console.log('💬 Setting up chat subscription for:', firebaseUser.uid, 'role:', userRole);
+
     // Subscribe to real-time chat room updates
     const unsubscribe = subscribeToChatRooms(
       firebaseUser.uid,
-      'customer',
+      userRole,
       (rooms: ChatRoom[]) => {
         const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+        console.log('🔔 Total unread messages:', total, 'from', rooms.length, 'chat rooms');
         setUnreadCount(total);
       }
     );
@@ -60,7 +71,7 @@ export function Header() {
         unsubscribe();
       }
     };
-  }, [firebaseUser]);
+  }, [firebaseUser, profile]);
   
   const menuRef = useRef<HTMLDivElement | null>(null);
 

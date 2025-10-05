@@ -3,8 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Users collection - users can read/write their own data
     match /users/{userId} {
+      // Users can read/write their own profile
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null && resource.data.role == 'seller';
+      // Anyone authenticated can read seller profiles (for shop search)
+      allow read: if request.auth != null && (
+        resource.data.role == 'seller' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      // Admins can read all profiles
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
