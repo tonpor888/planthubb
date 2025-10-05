@@ -244,6 +244,8 @@ export async function getUserChatRooms(
 
 // อัปเดตสถานะการอ่านข้อความ
 export async function markMessagesAsRead(chatId: string, userId: string) {
+  console.log('📖 Marking messages as read for chatId:', chatId, 'userId:', userId);
+  
   const messagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION);
   
   // แยก query เพื่อหลีกเลี่ยงการใช้ composite index
@@ -255,11 +257,15 @@ export async function markMessagesAsRead(chatId: string, userId: string) {
   
   const snapshot = await getDocs(q);
   
+  console.log('📊 Total unread messages found:', snapshot.size);
+  
   // กรองข้อความที่ไม่ใช่ของตัวเองใน client-side
   const messagesToUpdate = snapshot.docs.filter(doc => {
     const data = doc.data();
     return data.senderId !== userId;
   });
+  
+  console.log('✅ Messages to mark as read (not sent by me):', messagesToUpdate.length);
   
   const updatePromises = messagesToUpdate.map(doc => 
     updateDoc(doc.ref, { isRead: true })
@@ -268,11 +274,11 @@ export async function markMessagesAsRead(chatId: string, userId: string) {
   await Promise.all(updatePromises);
   
   // อัปเดตจำนวนข้อความที่ยังไม่ได้อ่านในห้องแชท
-  await updateChatRoomUnreadCount(chatId);
+  await updateChatRoomUnreadCount(chatId, userId);
 }
 
 // อัปเดตจำนวนข้อความที่ยังไม่ได้อ่าน
-async function updateChatRoomUnreadCount(chatId: string) {
+async function updateChatRoomUnreadCount(chatId: string, forUserId: string) {
   const messagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION);
   const q = query(
     messagesRef,
@@ -281,7 +287,14 @@ async function updateChatRoomUnreadCount(chatId: string) {
   );
   
   const snapshot = await getDocs(q);
-  const unreadCount = snapshot.size;
+  
+  // Count only messages NOT sent by this user (messages sent TO this user)
+  const unreadCount = snapshot.docs.filter(doc => {
+    const data = doc.data();
+    return data.senderId !== forUserId;
+  }).length;
+  
+  console.log('📝 Updating chat room unread count to:', unreadCount, 'for chatId:', chatId);
   
   const chatRoomRef = doc(firestore, CHAT_ROOMS_COLLECTION, chatId);
   await updateDoc(chatRoomRef, {
@@ -447,16 +460,41 @@ export function subscribeToChatRooms(
     );
   }
   
-  return onSnapshot(q!, (snapshot) => {
-    const chatRooms = snapshot.docs
+  return onSnapshot(q!, async (snapshot) => {
+    console.log('🔄 Chat rooms subscription triggered for userId:', userId);
+    
+    // Map chat rooms and calculate unread count per user
+    const chatRoomsPromises = snapshot.docs
       .filter(doc => doc.data().status !== 'deleted') // กรองห้องแชทที่ถูกลบ
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        lastMessageTime: doc.data().lastMessageTime?.toDate() || new Date(),
-      })) as ChatRoom[];
+      .map(async (doc) => {
+        const chatRoomData = doc.data();
+        
+        // Calculate unread count for this specific user
+        const messagesQuery = query(
+          collection(firestore, CHAT_MESSAGES_COLLECTION),
+          where("chatId", "==", doc.id),
+          where("isRead", "==", false)
+        );
+        
+        const messagesSnapshot = await getDocs(messagesQuery);
+        // Count only messages NOT sent by the current user
+        const userSpecificUnreadCount = messagesSnapshot.docs.filter(
+          msgDoc => msgDoc.data().senderId !== userId
+        ).length;
+        
+        console.log(`💬 Chat room ${doc.id}: ${userSpecificUnreadCount} unread messages for user ${userId}`);
+        
+        return {
+          id: doc.id,
+          ...chatRoomData,
+          unreadCount: userSpecificUnreadCount, // Override with user-specific count
+          createdAt: chatRoomData.createdAt?.toDate() || new Date(),
+          updatedAt: chatRoomData.updatedAt?.toDate() || new Date(),
+          lastMessageTime: chatRoomData.lastMessageTime?.toDate() || new Date(),
+        } as ChatRoom;
+      });
+    
+    const chatRooms = await Promise.all(chatRoomsPromises);
     
     // เรียงลำดับห้องแชท: แชทที่ยังไม่จบอยู่ด้านบน, แชทที่จบแล้วอยู่ด้านล่าง
     chatRooms.sort((a, b) => {
