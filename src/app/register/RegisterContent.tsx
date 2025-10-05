@@ -34,7 +34,7 @@ function RegisterForm() {
   const isMonday = today === 1;
   
   const handleUnlock = () => {
-    if (unlockPassword === "plathub12345") {
+    if (unlockPassword === "planthub12345") {
       setIsUnlocked(true);
     }
   };
