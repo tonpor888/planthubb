@@ -17,10 +17,18 @@ export default function LoginContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Block login until Monday - REMOVE THIS ON PRESENTATION DAY
+  const [unlockPassword, setUnlockPassword] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
   const isMonday = today === 1;
   
-  if (!isMonday) {
+  const handleUnlock = () => {
+    if (unlockPassword === "plathub12345") {
+      setIsUnlocked(true);
+    }
+  };
+  
+  if (!isMonday && !isUnlocked) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-lime-50 to-white py-16 flex items-center justify-center">
         <div className="mx-auto max-w-2xl px-4">
@@ -40,6 +48,25 @@ export default function LoginContent() {
                 เรากำลังปรับปรุงระบบเพื่อประสบการณ์ที่ดีขึ้น
               </p>
             </div>
+            
+            {/* Admin Unlock */}
+            <div className="mb-6">
+              <input
+                type="password"
+                value={unlockPassword}
+                onChange={(e) => setUnlockPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+                placeholder="Admin Password"
+                className="w-full max-w-sm mx-auto rounded-xl border border-emerald-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+              />
+              <button
+                onClick={handleUnlock}
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-600 px-6 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+              >
+                🔓 Unlock
+              </button>
+            </div>
+            
             <Link 
               href="/"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-lime-400 px-8 py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-105"
