@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useAuthContext } from '../providers/AuthProvider';
 import ChatPanel from './ChatPanel';
+import { chatTrigger } from '../hooks/useChatTrigger';
 
 interface FloatingChatButtonProps {
   onClick?: () => void;
@@ -35,6 +36,16 @@ export default function FloatingChatButton({ onClick, unreadCount = 0 }: Floatin
   const handleCloseChat = () => {
     setIsChatOpen(false);
   };
+
+  // Listen for global chat triggers to open chat panel
+  useEffect(() => {
+    const unsubscribe = chatTrigger.subscribe((payload) => {
+      console.log('🎯 FloatingChatButton received chat trigger:', payload);
+      setIsChatOpen(true);
+    });
+
+    return unsubscribe;
+  }, []);
 
   return (
     <>

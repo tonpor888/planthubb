@@ -6,7 +6,7 @@ import { ArrowRight, Package, Truck, BadgeDollarSign, FileDown, Undo2, Loader2, 
 import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 
 import { useAuthContext } from "../providers/AuthProvider";
-import { firestore } from "@/lib/firebaseClient";
+import { firestore } from "../../lib/firebaseClient";
 import { useChatTrigger } from "../hooks/useChatTrigger";
 
 type OrderItem = {
@@ -181,40 +181,34 @@ export default function OrdersPage() {
     // Check if order has direct sellerId
     if (!order.sellerId) {
       // Try to get sellerId from first item
-      if (order.items && order.items.length > 0 && order.items[0].id) {
+      if (order.items && order.items.length > 0 && order.items[0].sellerId) {
+        const sellerId = order.items[0].sellerId;
+        console.log('✅ Found sellerId from order item:', sellerId);
+        
         try {
-          console.log('📦 Fetching product to get sellerId:', order.items[0].id);
-          const productDoc = await getDoc(doc(firestore, 'products', order.items[0].id));
+          // Fetch seller info from Firestore users collection
+          const sellerDoc = await getDoc(doc(firestore, 'users', sellerId));
           
-          if (productDoc.exists()) {
-            const productData = productDoc.data();
-            const sellerId = productData.sellerId || productData.userId;
-            
-            if (sellerId) {
-              console.log('✅ Found sellerId from product:', sellerId);
-              // Continue with fetching seller info
-              const sellerDoc = await getDoc(doc(firestore, 'users', sellerId));
-              
-              if (!sellerDoc.exists()) {
-                alert('ไม่พบข้อมูลผู้ขาย');
-                return;
-              }
-
-              const sellerData = sellerDoc.data();
-              const sellerName = sellerData.shopName || `${sellerData.firstName} ${sellerData.lastName}`;
-              
-              console.log('🛍️ Opening chat for order:', {
-                orderId: order.id,
-                sellerId: sellerId,
-                sellerName
-              });
-
-              openChatWithSeller(sellerId, sellerName, order.id);
-              return;
-            }
+          if (!sellerDoc.exists()) {
+            alert('ไม่พบข้อมูลผู้ขาย');
+            return;
           }
+
+          const sellerData = sellerDoc.data();
+          const sellerName = sellerData.shopName || `${sellerData.firstName} ${sellerData.lastName}`;
+          
+          console.log('🛍️ Opening chat for order:', {
+            orderId: order.id,
+            sellerId: sellerId,
+            sellerName
+          });
+
+          openChatWithSeller(sellerId, sellerName, order.id);
+          return;
         } catch (error) {
-          console.error('❌ Error fetching product/seller:', error);
+          console.error('❌ Error fetching seller:', error);
+          alert('ไม่สามารถเปิดแชทได้ กรุณาลองใหม่อีกครั้ง');
+          return;
         }
       }
       

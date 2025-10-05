@@ -16,6 +16,7 @@ import {
 import { MessageCircle, X, Send, Search, User, Shield, Store, Clock, Trash2 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
+import { chatTrigger } from '../hooks/useChatTrigger';
 
 type Seller = {
   id: string;
@@ -119,6 +120,34 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
       }, triggerData.orderId);
     }
   }, [triggerData, isOpen]);
+
+  // Listen for global chat triggers
+  useEffect(() => {
+    const unsubscribe = chatTrigger.subscribe((payload) => {
+      console.log('🎯 Received chat trigger:', payload);
+      
+      // Open chat panel if not already open
+      if (!isOpen) {
+        // We need to trigger the chat panel to open
+        // This will be handled by the FloatingChatButton
+        return;
+      }
+      
+      // If chat panel is already open, start chat with seller
+      if (firebaseUser && profile) {
+        handleStartChatWithSeller({
+          id: payload.sellerId,
+          email: '',
+          firstName: '',
+          lastName: '',
+          shopName: payload.sellerName,
+          role: 'seller'
+        }, payload.orderId);
+      }
+    });
+
+    return unsubscribe;
+  }, [isOpen, firebaseUser, profile]);
 
   // Load chat rooms with real-time updates
   useEffect(() => {
