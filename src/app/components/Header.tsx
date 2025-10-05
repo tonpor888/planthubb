@@ -23,18 +23,44 @@ import Image from "next/image";
 import { useAuthContext } from "../providers/AuthProvider";
 import FloatingChatButton from "./FloatingChatButton";
 import ChatPanel from "./ChatPanel";
+import { getUserChatRooms, subscribeToChatRooms, type ChatRoom } from "../../services/firebase/chat.service";
 
 export function Header() {
   const router = useRouter();
-  const { profile, signOut: signOutUser } = useAuthContext();
+  const { profile, signOut: signOutUser, firebaseUser } = useAuthContext();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  
+  // Load unread message count with real-time updates
+  useEffect(() => {
+    if (!firebaseUser) {
+      setUnreadCount(0);
+      return;
+    }
+
+    // Subscribe to real-time chat room updates
+    const unsubscribe = subscribeToChatRooms(
+      firebaseUser.uid,
+      'customer',
+      (rooms: ChatRoom[]) => {
+        const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+        setUnreadCount(total);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [firebaseUser]);
   
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -430,12 +456,16 @@ export function Header() {
       )}
       
       {/* Floating Chat Button */}
-      <FloatingChatButton onClick={() => setIsChatOpen(true)} />
+      <FloatingChatButton 
+        onClick={() => setIsChatOpen(true)} 
+        unreadCount={unreadCount}
+      />
       
       {/* Chat Panel Component */}
       <ChatPanel 
         isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)} 
+        onClose={() => setIsChatOpen(false)}
+        onUnreadCountChange={setUnreadCount}
       />
     </>
   );

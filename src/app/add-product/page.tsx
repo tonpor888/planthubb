@@ -17,7 +17,16 @@ interface ProductForm {
   stock: string;
   price: string;
   cost: string;
+  category: string;
 }
+
+const categories = [
+  { value: "indoor", label: "ต้นไม้ในร่ม" },
+  { value: "outdoor", label: "ต้นไม้กลางแจ้ง" },
+  { value: "flowers", label: "ดอกไม้" },
+  { value: "herbs", label: "ผักสวนครัว" },
+  { value: "succulents", label: "ไม้อวบน้ำ" },
+];
 
 const defaultForm: ProductForm = {
   imageUrl: "",
@@ -26,6 +35,7 @@ const defaultForm: ProductForm = {
   stock: "0",
   price: "0",
   cost: "0",
+  category: "indoor",
 };
 
 export default function AddProductPage() {
@@ -61,6 +71,7 @@ export default function AddProductPage() {
         stock: stockValue,
         price: priceValue,
         cost: costValue,
+        category: form.category,
         sellerId: profile?.uid ?? "guest",
         active: true,
         createdAt: Date.now(),
@@ -136,6 +147,28 @@ export default function AddProductPage() {
               onChange={(event) => handleChange("description", event.target.value)}
               className="w-full rounded-xl border border-emerald-200 px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="category" className="text-sm font-medium text-emerald-700">
+              หมวดหมู่สินค้า
+            </label>
+            <select
+              id="category"
+              required
+              value={form.category}
+              onChange={(event) => handleChange("category", event.target.value)}
+              className="w-full rounded-xl border border-emerald-200 px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 bg-white"
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 mt-1">
+              เลือกหมวดหมู่ที่เหมาะสมเพื่อช่วยให้ลูกค้าค้นหาสินค้าได้ง่ายขึ้น
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">

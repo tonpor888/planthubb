@@ -106,6 +106,7 @@ export default function Home() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -289,34 +290,111 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="mb-8 overflow-x-auto pb-4 -mx-4 px-4">
-            <div className="flex gap-3 min-w-max">
-              {categories.map((category) => {
-                const isSelected = selectedCategory === category.id;
-                const count = categoryCounts[category.id] || 0;
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                      isSelected
-                        ? `${category.bgColor} ${category.color} ${category.borderColor} border-2 shadow-md scale-105`
-                        : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {category.icon}
-                    <span>{category.name}</span>
-                    <span className={`ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                      isSelected 
-                        ? `${category.color} bg-white/50` 
+          {/* Category Filter - Desktop: Pills, Mobile: Dropdown */}
+          <div className="mb-8">
+            {/* Mobile Dropdown */}
+            <div className="block md:hidden">
+              <div className="relative">
+                <button
+                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  className={`w-full flex items-center justify-between gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 ${
+                    selectedCategory !== 'all'
+                      ? `${categories.find(c => c.id === selectedCategory)?.bgColor} ${categories.find(c => c.id === selectedCategory)?.color} ${categories.find(c => c.id === selectedCategory)?.borderColor} border-2 shadow-md`
+                      : 'bg-white text-slate-600 border-2 border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {categories.find(c => c.id === selectedCategory)?.icon}
+                    <span>{categories.find(c => c.id === selectedCategory)?.name}</span>
+                    <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                      selectedCategory !== 'all'
+                        ? `${categories.find(c => c.id === selectedCategory)?.color} bg-white/50`
                         : 'bg-slate-100 text-slate-600'
                     }`}>
-                      {count}
+                      {categoryCounts[selectedCategory] || 0}
                     </span>
-                  </button>
-                );
-              })}
+                  </div>
+                  <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isCategoryOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsCategoryOpen(false)}
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-2 max-h-80 overflow-y-auto rounded-2xl border-2 border-emerald-100 bg-white p-2 shadow-2xl z-20 animate-slideDown origin-top">
+                      {categories.map((category) => {
+                        const count = categoryCounts[category.id] || 0;
+                        const isSelected = selectedCategory === category.id;
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => {
+                              setSelectedCategory(category.id);
+                              setIsCategoryOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-all duration-150 ${
+                              isSelected
+                                ? `${category.bgColor} ${category.color} font-semibold`
+                                : 'text-slate-700 hover:bg-emerald-50/50 hover:text-emerald-600'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              {category.icon}
+                              <span>{category.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                                isSelected
+                                  ? 'bg-white/70 text-current'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {count}
+                              </span>
+                              {isSelected && (
+                                <span className="h-2 w-2 rounded-full bg-current"></span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Desktop Pills */}
+            <div className="hidden md:block overflow-x-auto pb-4 -mx-4 px-4">
+              <div className="flex gap-3 min-w-max">
+                {categories.map((category) => {
+                  const isSelected = selectedCategory === category.id;
+                  const count = categoryCounts[category.id] || 0;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                        isSelected
+                          ? `${category.bgColor} ${category.color} ${category.borderColor} border-2 shadow-md scale-105`
+                          : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {category.icon}
+                      <span>{category.name}</span>
+                      <span className={`ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                        isSelected 
+                          ? `${category.color} bg-white/50` 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

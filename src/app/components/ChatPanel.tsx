@@ -16,9 +16,10 @@ import { MessageCircle, X, Send, Search, User, Shield, Store, Clock } from 'luci
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onUnreadCountChange?: (count: number) => void;
 }
 
-export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
+export default function ChatPanel({ isOpen, onClose, onUnreadCountChange }: ChatPanelProps) {
   const { firebaseUser, profile } = useAuthContext();
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
@@ -51,6 +52,9 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
       const unsubscribe = subscribeToChatMessages(selectedChat.id!, (newMessages) => {
         setMessages(newMessages);
         markMessagesAsRead(selectedChat.id!, firebaseUser.uid);
+        
+        // Reload chat rooms to update unread count
+        loadChatRooms();
       });
       
       unsubscribeRef.current = unsubscribe;
@@ -71,6 +75,10 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
     try {
       const rooms = await getUserChatRooms(firebaseUser.uid, 'customer');
       setChatRooms(rooms);
+      
+      // Calculate and update unread count
+      const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+      onUnreadCountChange?.(total);
     } catch (error) {
       console.error('Error loading chat rooms:', error);
     } finally {
