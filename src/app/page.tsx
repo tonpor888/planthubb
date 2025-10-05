@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { onValue, ref } from "firebase/database";
-import { Eye, ChevronDown, SortAsc } from "lucide-react";
+import { Eye, ChevronDown, SortAsc, Leaf, Flower2, Trees, Sprout, ShoppingBag } from "lucide-react";
 
 import { useCartStore } from "../store/cartStore";
 import { realtimeDb } from "@/lib/firebaseClient";
@@ -20,7 +20,68 @@ type Product = {
   active?: boolean;
   views?: number;
   createdAt?: number;
+  category?: string;
 };
+
+type Category = {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+};
+
+const categories: Category[] = [
+  { 
+    id: "all", 
+    name: "ทั้งหมด", 
+    icon: <ShoppingBag className="h-5 w-5" />,
+    color: "text-slate-700",
+    bgColor: "bg-white",
+    borderColor: "border-slate-300"
+  },
+  { 
+    id: "indoor", 
+    name: "ต้นไม้ในร่ม", 
+    icon: <Sprout className="h-5 w-5" />,
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-300"
+  },
+  { 
+    id: "outdoor", 
+    name: "ต้นไม้กลางแจ้ง", 
+    icon: <Trees className="h-5 w-5" />,
+    color: "text-teal-700",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-300"
+  },
+  { 
+    id: "flowers", 
+    name: "ดอกไม้", 
+    icon: <Flower2 className="h-5 w-5" />,
+    color: "text-pink-700",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-300"
+  },
+  { 
+    id: "herbs", 
+    name: "ผักสวนครัว", 
+    icon: <Leaf className="h-5 w-5" />,
+    color: "text-lime-700",
+    bgColor: "bg-lime-50",
+    borderColor: "border-lime-300"
+  },
+  { 
+    id: "succulents", 
+    name: "ไม้อวบน้ำ", 
+    icon: <Sprout className="h-5 w-5" />,
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-300"
+  },
+];
 
 type SortOption = {
   value: "newest" | "price-low" | "price-high" | "views";
@@ -44,6 +105,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high" | "views">("newest");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Debounce search query
   useEffect(() => {
@@ -95,14 +157,66 @@ export default function Home() {
     };
   }, [isLoading]);
 
+  // Auto-categorize products based on name keywords
+  const getCategoryFromName = (name: string): string => {
+    const nameLower = name.toLowerCase();
+    
+    // Indoor plants
+    if (nameLower.includes('มอนสเตอร่า') || nameLower.includes('พลูด่าง') || 
+        nameLower.includes('เฟิร์น') || nameLower.includes('สันเสวียร') ||
+        nameLower.includes('ในร่ม') || nameLower.includes('indoor')) {
+      return 'indoor';
+    }
+    
+    // Flowers
+    if (nameLower.includes('กุหลาบ') || nameLower.includes('ดอก') || 
+        nameLower.includes('ดาวเรือง') || nameLower.includes('ลิลลี่') ||
+        nameLower.includes('ออคิด') || nameLower.includes('กล้วยไม้')) {
+      return 'flowers';
+    }
+    
+    // Succulents
+    if (nameLower.includes('กระบองเพชร') || nameLower.includes('แคคตัส') || 
+        nameLower.includes('หินนอน') || nameLower.includes('อวบน้ำ') ||
+        nameLower.includes('succulent') || nameLower.includes('cactus')) {
+      return 'succulents';
+    }
+    
+    // Herbs
+    if (nameLower.includes('โหระพา') || nameLower.includes('ผักชี') || 
+        nameLower.includes('มะนาว') || nameLower.includes('พริก') ||
+        nameLower.includes('ผัก') || nameLower.includes('สมุนไพร')) {
+      return 'herbs';
+    }
+    
+    // Outdoor plants
+    if (nameLower.includes('ต้นไม้') || nameLower.includes('ปาล์ม') || 
+        nameLower.includes('ไผ่') || nameLower.includes('บอนไซ') ||
+        nameLower.includes('กลางแจ้ง') || nameLower.includes('outdoor')) {
+      return 'outdoor';
+    }
+    
+    return 'indoor'; // default category
+  };
+
   const filteredProducts = useMemo(() => {
     const normalized = debouncedQuery.trim().toLowerCase();
     let items = Object.entries(products)
-      .map(([id, product]) => ({ ...product, id }))
+      .map(([id, product]) => ({ 
+        ...product, 
+        id,
+        category: product.category || getCategoryFromName(product.name)
+      }))
       .filter((product) => product.active !== false);
 
+    // Filter by search query
     if (normalized) {
       items = items.filter((product) => product.name.toLowerCase().includes(normalized));
+    }
+
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      items = items.filter((product) => product.category === selectedCategory);
     }
 
     // Sort products
@@ -121,7 +235,7 @@ export default function Home() {
     });
 
     return items;
-  }, [products, debouncedQuery, sortBy]);
+  }, [products, debouncedQuery, sortBy, selectedCategory]);
 
   const handleAddToCart = useCallback((product: Product) => {
     addToCart({
@@ -138,6 +252,19 @@ export default function Home() {
     setSortBy(value);
     setIsSortOpen(false);
   };
+
+  // Count products per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    Object.entries(products).forEach(([id, product]) => {
+      if (product.active !== false) {
+        const category = product.category || getCategoryFromName(product.name);
+        counts[category] = (counts[category] || 0) + 1;
+        counts.all += 1;
+      }
+    });
+    return counts;
+  }, [products]);
 
   const selectedSortLabel = sortOptions.find(opt => opt.value === sortBy)?.label || "เรียงตาม";
 
@@ -160,6 +287,37 @@ export default function Home() {
             <p className="mt-2 max-w-2xl text-lg text-slate-600">
               สำรวจพันธุ์ไม้ยอดนิยมที่ได้รับความนิยมสูงสุดจากคอมมูนิตี้ของเรา
             </p>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="mb-8 overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="flex gap-3 min-w-max">
+              {categories.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                const count = categoryCounts[category.id] || 0;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                      isSelected
+                        ? `${category.bgColor} ${category.color} ${category.borderColor} border-2 shadow-md scale-105`
+                        : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {category.icon}
+                    <span>{category.name}</span>
+                    <span className={`ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                      isSelected 
+                        ? `${category.color} bg-white/50` 
+                        : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-10 flex flex-col gap-6">

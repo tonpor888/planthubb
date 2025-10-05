@@ -173,6 +173,16 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
     }
   };
 
+  // Highlight search text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, index) => 
+      regex.test(part) ? <mark key={index} className="bg-yellow-200 text-gray-900">{part}</mark> : part
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -212,17 +222,47 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             // Chat List View
             <>
               {/* Search Bar */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200 bg-white">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
+                    searchQuery ? 'text-blue-500' : 'text-gray-400'
+                  }`} />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ค้นหาชื่อร้านหรือแอดมิน..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-10 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                      searchQuery 
+                        ? 'border-blue-400 ring-2 ring-blue-200 bg-blue-50/30' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-transparent'
+                    }`}
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition bg-white rounded-full p-0.5"
+                      title="ล้างการค้นหา"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
+                {searchQuery && (
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-blue-600 font-medium">
+                      {filteredChatRooms.length === 0 
+                        ? 'ไม่พบผลการค้นหา' 
+                        : `พบ ${filteredChatRooms.length} รายการ`
+                      }
+                    </p>
+                    {filteredChatRooms.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        กำลังค้นหา: "{searchQuery}"
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* New Chat Button */}
@@ -245,8 +285,17 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                 ) : filteredChatRooms.length === 0 ? (
                   <div className="text-center text-gray-500 py-12 px-4">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">ยังไม่มีการสนทนา</p>
-                    <p className="text-sm text-gray-400 mt-2">คลิกปุ่มด้านบนเพื่อเริ่มต้นการสนทนา</p>
+                    {searchQuery ? (
+                      <>
+                        <p className="text-lg font-medium">ไม่พบผลการค้นหา</p>
+                        <p className="text-sm text-gray-400 mt-2">ลองค้นหาด้วยคำอื่น หรือเริ่มการสนทนาใหม่</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-medium">ยังไม่มีการสนทนา</p>
+                        <p className="text-sm text-gray-400 mt-2">คลิกปุ่มด้านบนเพื่อเริ่มต้นการสนทนา</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   filteredChatRooms.map((room) => (
@@ -264,14 +313,17 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center justify-between mb-1">
                           <h3 className="font-semibold text-gray-900 truncate">
-                            {getChatTitle(room)}
+                            {searchQuery ? highlightText(getChatTitle(room), searchQuery) : getChatTitle(room)}
                           </h3>
                           <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
                             {formatTime(room.lastMessageTime)}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 truncate">
-                          {room.lastMessage || 'ยังไม่มีข้อความ'}
+                          {searchQuery && room.lastMessage 
+                            ? highlightText(room.lastMessage, searchQuery)
+                            : (room.lastMessage || 'ยังไม่มีข้อความ')
+                          }
                         </p>
                         {room.status === 'closed' && (
                           <span className="text-xs text-red-500 mt-1 inline-block">
