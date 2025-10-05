@@ -55,6 +55,52 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Consolidate multiple admin support chats into one per customer
+  const consolidateAdminChats = (rooms: ChatRoom[]): ChatRoom[] => {
+    const consolidated: ChatRoom[] = [];
+    const customerGroups: { [customerId: string]: ChatRoom[] } = {};
+
+    // Group admin support chats by customer
+    rooms.forEach(room => {
+      if (room.chatType === 'admin_support') {
+        if (!customerGroups[room.customerId]) {
+          customerGroups[room.customerId] = [];
+        }
+        customerGroups[room.customerId].push(room);
+      } else {
+        // Keep seller support chats as is
+        consolidated.push(room);
+      }
+    });
+
+    // Consolidate admin support chats per customer
+    Object.values(customerGroups).forEach(customerRooms => {
+      if (customerRooms.length === 1) {
+        consolidated.push(customerRooms[0]);
+      } else {
+        // Merge multiple admin chats for the same customer
+        const latestRoom = customerRooms.reduce((latest, current) => 
+          current.updatedAt > latest.updatedAt ? current : latest
+        );
+        
+        // Calculate total unread count
+        const totalUnread = customerRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+        
+        // Create consolidated room
+        const consolidatedRoom: ChatRoom = {
+          ...latestRoom,
+          unreadCount: totalUnread,
+          lastMessage: latestRoom.lastMessage || 'การสนทนากับลูกค้า',
+          customerName: `${latestRoom.customerName} (${customerRooms.length} การสนทนา)`
+        };
+        
+        consolidated.push(consolidatedRoom);
+      }
+    });
+
+    return consolidated;
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -92,10 +138,17 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         userRole,
         (rooms: ChatRoom[]) => {
           console.log('📬 ChatPanel: Received', rooms.length, 'chat rooms');
-          setChatRooms(rooms);
+          
+          // For admins, consolidate multiple admin support chats into one
+          let processedRooms = rooms;
+          if (profile.role === 'admin') {
+            processedRooms = consolidateAdminChats(rooms);
+          }
+          
+          setChatRooms(processedRooms);
           
           // Calculate and update unread count
-          const total = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+          const total = processedRooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
           console.log('🔔 ChatPanel: Total unread:', total);
           onUnreadCountChange?.(total);
           
@@ -174,21 +227,31 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     setIsSearchingSellers(true);
     try {
       const usersRef = collection(firestore, 'users');
-      const q = query(usersRef, where('role', '==', 'seller'));
+      
+      // For admins, search all users (sellers and customers)
+      // For others, only search sellers
+      let q;
+      if (profile?.role === 'admin') {
+        // Admin can search all users
+        q = query(usersRef);
+      } else {
+        q = query(usersRef, where('role', '==', 'seller'));
+      }
+      
       const snapshot = await getDocs(q);
       
-      console.log('📊 Total sellers in database:', snapshot.docs.length);
+      console.log('📊 Total users in database:', snapshot.docs.length);
       
       if (snapshot.empty) {
-        console.warn('⚠️ No sellers found in database!');
+        console.warn('⚠️ No users found in database!');
         setSearchedSellers([]);
         setIsSearchingSellers(false);
         return;
       }
       
-      const allSellers = snapshot.docs.map(doc => {
+      const allUsers = snapshot.docs.map(doc => {
         const data = doc.data() as Partial<Seller>;
-        console.log('👤 Seller data:', {
+        console.log('👤 User data:', {
           id: doc.id,
           shopName: data.shopName,
           firstName: data.firstName,
@@ -201,21 +264,21 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
           firstName: data.firstName ?? '',
           lastName: data.lastName ?? '',
           shopName: data.shopName,
-          role: data.role ?? 'seller',
+          role: data.role ?? 'customer',
         } satisfies Seller;
       });
       
-      // Filter sellers by search query
+      // Filter users by search query
       const searchLower = searchText.toLowerCase();
-      const filtered = allSellers.filter(seller => {
-        const shopName = seller.shopName && seller.shopName.trim()
-          ? seller.shopName.trim()
-          : `${seller.firstName} ${seller.lastName}`.trim();
+      const filtered = allUsers.filter(user => {
+        const shopName = user.shopName && user.shopName.trim()
+          ? user.shopName.trim()
+          : `${user.firstName} ${user.lastName}`.trim();
 
         const safeShop = shopName.toLowerCase();
-        const safeEmail = seller.email.toLowerCase();
-        const safeFirst = seller.firstName.toLowerCase();
-        const safeLast = seller.lastName.toLowerCase();
+        const safeEmail = user.email.toLowerCase();
+        const safeFirst = user.firstName.toLowerCase();
+        const safeLast = user.lastName.toLowerCase();
 
         const matches = (
           safeShop.includes(searchLower) ||
@@ -225,16 +288,16 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
         );
         
         if (matches) {
-          console.log('✅ Match found:', shopName);
+          console.log('✅ Match found:', shopName, 'role:', user.role);
         }
         
         return matches;
       });
       
-      console.log('✅ Filtered sellers found:', filtered.length, filtered);
+      console.log('✅ Filtered users found:', filtered.length, filtered);
       setSearchedSellers(filtered);
     } catch (error: any) {
-      console.error('❌ Error searching sellers:', error);
+      console.error('❌ Error searching users:', error);
       console.error('Error details:', {
         code: error.code,
         message: error.message,
@@ -256,16 +319,31 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     
     try {
       const shopName = seller.shopName || `${seller.firstName} ${seller.lastName}`;
-      console.log('🛍️ Starting chat with seller:', { sellerId: seller.id, shopName, orderId });
+      console.log('🛍️ Starting chat with seller:', { sellerId: seller.id, shopName, orderId, adminRole: profile.role });
       
-      const chatId = await createChatRoom(
-        'seller_support',
-        firebaseUser.uid,
-        `${profile.firstName} ${profile.lastName}`.trim(),
-        seller.id,
-        shopName,
-        orderId
-      );
+      // For admins chatting with sellers, create a special admin-seller chat
+      let chatId;
+      if (profile.role === 'admin') {
+        // Admin chatting with seller - create seller_support chat but with admin as customer
+        chatId = await createChatRoom(
+          'seller_support',
+          firebaseUser.uid, // Admin as the "customer" in this context
+          `แอดมิน ${profile.firstName} ${profile.lastName}`.trim(),
+          seller.id,
+          shopName,
+          orderId
+        );
+      } else {
+        // Regular customer chatting with seller
+        chatId = await createChatRoom(
+          'seller_support',
+          firebaseUser.uid,
+          `${profile.firstName} ${profile.lastName}`.trim(),
+          seller.id,
+          shopName,
+          orderId
+        );
+      }
       
       // Real-time subscription will automatically update the chat rooms list
       // Wait a bit for the room to be loaded via subscription
@@ -316,11 +394,23 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
     
     setIsSending(true);
     try {
+      // Determine sender role based on user role and chat type
+      let senderRole: 'customer' | 'seller' | 'admin' = 'customer';
+      if (profile.role === 'admin') {
+        senderRole = 'admin';
+      } else if (profile.role === 'seller') {
+        senderRole = 'seller';
+      }
+
+      const senderName = profile.role === 'admin' 
+        ? `แอดมิน ${profile.firstName} ${profile.lastName}`.trim()
+        : `${profile.firstName} ${profile.lastName}`.trim();
+
       await sendMessage(
         selectedChat.id!,
         firebaseUser.uid,
-        `${profile.firstName} ${profile.lastName}`.trim(),
-        'customer',
+        senderName,
+        senderRole,
         newMessage.trim()
       );
       setNewMessage('');
@@ -467,7 +557,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ค้นหาชื่อร้านหรือแอดมิน..."
+                    placeholder={profile?.role === 'admin' ? "ค้นหาชื่อร้านค้าหรือลูกค้า..." : "ค้นหาชื่อร้านหรือแอดมิน..."}
                     className={`w-full pl-10 pr-10 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
                       searchQuery 
                         ? 'border-blue-400 ring-2 ring-blue-200 bg-blue-50/30' 
@@ -621,7 +711,9 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                       <>
                         {filteredChatRooms.length > 0 && (
                           <div className="px-4 py-2 bg-emerald-50 border-y border-emerald-100">
-                            <p className="text-xs font-semibold text-emerald-700 uppercase">ร้านค้าที่พบ</p>
+                            <p className="text-xs font-semibold text-emerald-700 uppercase">
+                              {profile?.role === 'admin' ? 'ผู้ใช้ที่พบ' : 'ร้านค้าที่พบ'}
+                            </p>
                           </div>
                         )}
                         {searchedSellers.map((seller) => {
@@ -648,7 +740,7 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
                                   คลิกเพื่อเริ่มการสนทนา
                                 </p>
                                 <span className="text-xs text-emerald-600 mt-1 inline-block">
-                                  ร้านค้า
+                                  {seller.role === 'seller' ? 'ร้านค้า' : seller.role === 'admin' ? 'แอดมิน' : 'ลูกค้า'}
                                 </span>
                               </div>
 

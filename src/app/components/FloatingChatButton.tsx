@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useAuthContext } from '../providers/AuthProvider';
+import ChatPanel from './ChatPanel';
 
 interface FloatingChatButtonProps {
   onClick?: () => void;
@@ -8,18 +11,51 @@ interface FloatingChatButtonProps {
 }
 
 export default function FloatingChatButton({ onClick, unreadCount = 0 }: FloatingChatButtonProps) {
+  const { profile } = useAuthContext();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+
+  // Only show for authenticated users (customers, sellers, admins)
+  if (!profile) {
+    return null;
+  }
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      setIsChatOpen(true);
+    }
+  };
+
+  const handleUnreadCountChange = (count: number) => {
+    setTotalUnreadCount(count);
+  };
+
+  const handleCloseChat = () => {
+    setIsChatOpen(false);
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className="fixed bottom-8 right-28 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-2xl shadow-blue-500/40 transition-all duration-300 hover:scale-110 hover:shadow-blue-500/60"
-      aria-label="Chat Support"
-    >
-      <MessageCircle className="h-7 w-7" />
-      {unreadCount > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg">
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      )}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        className="fixed bottom-8 right-28 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-2xl shadow-blue-500/40 transition-all duration-300 hover:scale-110 hover:shadow-blue-500/60"
+        aria-label="Chat Support"
+      >
+        <MessageCircle className="h-7 w-7" />
+        {(totalUnreadCount > 0 || unreadCount > 0) && (
+          <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg">
+            {Math.max(totalUnreadCount, unreadCount) > 99 ? '99+' : Math.max(totalUnreadCount, unreadCount)}
+          </span>
+        )}
+      </button>
+      
+      <ChatPanel 
+        isOpen={isChatOpen} 
+        onClose={handleCloseChat}
+        onUnreadCountChange={handleUnreadCountChange}
+      />
+    </>
   );
 }

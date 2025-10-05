@@ -6,6 +6,7 @@ import { ToastContainer } from "../components/ui/toast-container";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { FloatingCart } from "./components/FloatingCart";
+import FloatingChatButton from "./components/FloatingChatButton";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -146,6 +147,7 @@ export default function RootLayout({
             <Footer />
           </div>
           <FloatingCart />
+          <FloatingChatButton />
           <ToastContainer />
         </AuthProvider>
       </body>
