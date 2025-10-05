@@ -75,15 +75,32 @@ export default function ChatPanel({ isOpen, onClose, onUnreadCountChange, trigge
 
   const resolveLastMessageTimestamp = (room: ChatRoom | undefined | null): number => {
     if (!room) {
-      return Date.now();
+      return 0;
     }
 
-    const value = room.lastMessageTime;
-    if (value instanceof Date) {
+    const extractTime = (value: Date | undefined): number | null => {
+      if (!value) {
+        return null;
+      }
       return value.getTime();
+    };
+
+    const fromLastMessage = extractTime(room.lastMessageTime);
+    if (fromLastMessage !== null) {
+      return fromLastMessage;
     }
 
-    return Date.now();
+    const fromUpdatedAt = extractTime(room.updatedAt);
+    if (fromUpdatedAt !== null) {
+      return fromUpdatedAt;
+    }
+
+    const fromCreatedAt = extractTime(room.createdAt);
+    if (fromCreatedAt !== null) {
+      return fromCreatedAt;
+    }
+
+    return 0;
   };
 
   const persistClearedState = useCallback((mapChanged: boolean) => {

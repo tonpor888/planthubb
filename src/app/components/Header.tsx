@@ -42,16 +42,29 @@ export function Header() {
   }, []);
 
   const resolveLastMessageTimestamp = (room: ChatRoom): number => {
-    const value = room.lastMessageTime;
-    if (value instanceof Date) {
+    const extractTime = (value: Date | undefined): number | null => {
+      if (!value) {
+        return null;
+      }
       return value.getTime();
+    };
+
+    const fromLastMessage = extractTime(room.lastMessageTime);
+    if (fromLastMessage !== null) {
+      return fromLastMessage;
     }
 
-    if (value && typeof (value as { toDate?: () => Date }).toDate === "function") {
-      return (value as { toDate: () => Date }).toDate().getTime();
+    const fromUpdatedAt = extractTime(room.updatedAt);
+    if (fromUpdatedAt !== null) {
+      return fromUpdatedAt;
     }
 
-    return Date.now();
+    const fromCreatedAt = extractTime(room.createdAt);
+    if (fromCreatedAt !== null) {
+      return fromCreatedAt;
+    }
+
+    return 0;
   };
   
   // Listen for chat trigger events from other components
