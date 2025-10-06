@@ -230,24 +230,24 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden -mx-4 md:mx-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[580px]">
             <thead className="bg-gradient-to-r from-emerald-50 to-lime-50">
               <tr>
-                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   ผู้ใช้
                 </th>
-                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:table-cell">
+                <th className="px-2 sm:px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:table-cell">
                   สถานะ
                 </th>
-                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                <th className="px-2 sm:px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden md:table-cell">
                   วันที่สมัคร
                 </th>
-                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   การจัดการ
                 </th>
               </tr>
@@ -255,26 +255,26 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-slate-200">
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="px-3 md:px-6 py-4">
+                  <td className="px-2 sm:px-3 md:px-6 py-3 md:py-4">
                     <div>
-                      <div className="text-xs md:text-sm font-medium text-slate-900 truncate max-w-[120px] sm:max-w-none">
+                      <div className="text-xs md:text-sm font-medium text-slate-900 truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">
                         {user.firstName} {user.lastName}
                       </div>
-                      <div className="text-xs text-slate-500 truncate max-w-[120px] sm:max-w-none">{user.email}</div>
+                      <div className="text-xs text-slate-500 truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{user.email}</div>
                     </div>
                   </td>
-                  <td className="px-3 md:px-6 py-4">
+                  <td className="px-2 sm:px-3 md:px-6 py-3 md:py-4">
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      className="text-xs md:text-sm border border-slate-200 rounded-lg px-2 md:px-3 py-1.5 md:py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 w-full"
+                      className="text-[10px] sm:text-xs md:text-sm border border-slate-200 rounded-lg px-1.5 sm:px-2 md:px-3 py-1 md:py-1.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 w-full min-w-[70px]"
                     >
                       <option value="customer">ผู้ซื้อ</option>
                       <option value="seller">ผู้ขาย</option>
                       <option value="admin">แอดมิน</option>
                     </select>
                   </td>
-                  <td className="px-3 md:px-6 py-4 hidden sm:table-cell">
+                  <td className="px-2 sm:px-3 md:px-6 py-3 md:py-4 hidden sm:table-cell">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       user.emailVerified 
                         ? 'bg-green-100 text-green-800' 
@@ -283,31 +283,31 @@ export default function AdminUsersPage() {
                       {user.emailVerified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน'}
                     </span>
                   </td>
-                  <td className="px-3 md:px-6 py-4 hidden md:table-cell text-xs md:text-sm text-slate-500">
+                  <td className="px-2 sm:px-3 md:px-6 py-3 md:py-4 hidden md:table-cell text-xs md:text-sm text-slate-500">
                     {user.createdAt.toLocaleDateString('th-TH')}
                   </td>
-                  <td className="px-3 md:px-6 py-4 text-sm font-medium">
-                    <div className="flex items-center gap-1 md:gap-2">
+                  <td className="px-2 sm:px-3 md:px-6 py-3 md:py-4 text-sm font-medium">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => router.push(`/admin/users/${user.id}/logs`)}
-                        className="text-emerald-600 hover:text-emerald-800 transition p-1.5 md:p-1 rounded hover:bg-emerald-50"
+                        className="text-emerald-600 hover:text-emerald-800 transition p-1.5 rounded hover:bg-emerald-50"
                         title="ดู Log ของผู้ใช้"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                       <button
                         onClick={() => handleSendPasswordReset(user.email)}
-                        className="text-blue-600 hover:text-blue-800 transition p-1.5 md:p-1 rounded hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-800 transition p-1.5 rounded hover:bg-blue-50"
                         title="ส่งอีเมลรีเซ็ตรหัสผ่าน"
                       >
-                        <Mail className="h-4 w-4" />
+                        <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user.id, user.email)}
-                        className="text-red-600 hover:text-red-800 transition p-1.5 md:p-1 rounded hover:bg-red-50"
+                        className="text-red-600 hover:text-red-800 transition p-1.5 rounded hover:bg-red-50"
                         title="ลบผู้ใช้"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   </td>
@@ -367,9 +367,9 @@ export default function AdminUsersPage() {
                 </p>
               </div>
               <Shield className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
+            </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
